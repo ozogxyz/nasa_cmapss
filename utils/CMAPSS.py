@@ -1,17 +1,13 @@
-import numpy as np
 import torch
 from torch.utils.data import Dataset
 
-from utils.preprocessData import load
+from utils.loader import load_FD001
 
 
-def subset_ind(dataset, ratio: float):
-    return np.random.choice(len(dataset), size=int(ratio * len(dataset)), replace=False)
-
-
-class CMAPSS(Dataset):
+class CMAPSS_001(Dataset):
     def __init__(self, path=None, train=False, transform=None):
-        self.data, self.labels, _, _ = load(path)
+        self.path = path
+        self.data, self.labels, _ = load_FD001()
         self.train = train
         self.transform = transform
 

@@ -1,4 +1,12 @@
-def add_rul(df):
+import pandas
+
+
+def add_RUL(df: pandas.DataFrame) -> pandas.DataFrame:
+    """
+
+    :param df: raw data frame
+    :return: data frame labeled with targets
+    """
     # Get the total number of cycles for each unit
     grouped_by_unit = df.groupby(by="unit_nr")
     max_cycle = grouped_by_unit["time_cycles"].max()
