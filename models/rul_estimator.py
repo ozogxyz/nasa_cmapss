@@ -1,46 +1,57 @@
-import torch
-import torch.nn as nn
+from pytorch_lightning import LightningModule
 from torch.autograd import Variable
 from torch.nn import functional as F
-from pytorch_lightning import LightningModule
+import torch
+import torch.nn as nn
 
 
-class LSTM(LightningModule):
-    def __init__(self, input_size, hidden_size, seq_length=1):
+class Shcherbakov(LightningModule):
+    def __init__(self, dim_in, dim_lstm, kernel_size):
+        # n_channels = num_sensors = 14
         super().__init__()
-        self.input_size = input_size
-        self.hidden_size = hidden_size
-        self.seq_length = seq_length
-        self.lstm = nn.LSTM(
-            input_size=input_size,
-            hidden_size=hidden_size,
-            batch_first=True,
-            dropout=0.1
-        )
-        self.fc_1 = nn.Linear(hidden_size, 16)  # fully connected 1
-        self.fc_2 = nn.Linear(16, 8)  # fully connected 2
-        self.fc = nn.Linear(8, 1)  # fully connected last layer
-        self.dropout = nn.Dropout(0.1)
-        self.relu = nn.ReLU()
+        self.network = nn.Sequential()
+        self.network.add_module('conv1', nn.Conv1d(dim_in, dim_in*2, kernel_size))
+        self.network.add_module('relu_conv1', nn.ReLU())
+        self.network.add_module('conv2', nn.Conv1d(dim_in*2, dim_lstm, kernel_size))
+        self.network.add_module('relu_conv2', nn.ReLU())
+        self.network.add_module('max_pool', nn.MaxPool1d(kernel_size))
+        self.network.add_module('relu_max_pool', nn.ReLU())
+        self.network.add_module('lstm1', nn.LSTM(dim_lstm, dim_lstm))
+        self.network.add_module('tanh_lstm1', nn.Tanh())
+        self.network.add_module('drop1', nn.Dropout(p=0.2))
+        self.network.add_module('tanh_drop1', nn.Tanh())
+        self.network.add_module('lstm2', nn.LSTM(dim_lstm, dim_lstm))
+        self.network.add_module('tanh_lstm2', nn.Tanh())
+        self.network.add_module('drop2', nn.Dropout(p=0.2))
+        self.network.add_module('tanh_drop2', nn.Tanh())
+        self.network.add_module('flatten', nn.Flatten())
+        self.network.add_module('dense', nn.Linear(dim_lstm, dim_lstm/2))
+        self.network.add_module('relu_dense', nn.ReLU())
+        self.network.add_module('output', nn.Linear(dim_lstm/2, 1))
 
     def forward(self, x):
-        h_0 = Variable(torch.zeros(self.n_layers, x.size(0), self.hidden_size))
-        c_0 = Variable(torch.zeros(self.n_layers, x.size(0), self.hidden_size))
-        output, (hn, cn) = self.lstm(x, (h_0, c_0))
-        hn_o = torch.Tensor(hn.detach().numpy()[-1, :, :])
-        hn_o = hn_o.view(-1, self.hidden_size)
-        hn_1 = torch.Tensor(hn.detach().numpy()[1, :, :])
-        hn_1 = hn_1.view(-1, self.hidden_size)
-        out = self.relu(self.fc_1(self.relu(hn_o + hn_1)))
-        out = self.relu(self.fc_2(out))
-        out = self.dropout(out)
-        out = self.fc(out)
-        return out
+        return self.network(x)
 
-    def training_step(self, batch, batch_nb):
+    def training_step(self, batch):
         x, y = batch
-        loss = torch.nn.L1Loss(self.x, y)
+        x = x.view(x.size(0), -1)
+        loss = nn.L1Loss(x ,y)
         return loss
 
+    def validation_step(self, batch, batch_idx):
+        # this is the validation loop
+        x, y = batch
+        x = x.view(x.size(0), -1)
+        loss = nn.L1Loss(x ,y)
+        self.log("val_loss", val_loss)
+
+    def test_step(self, batch, batch_idx):
+        # this is the test loop
+        x, y = batch
+        x = x.view(x.size(0), -1)
+        loss = nn.L1Loss(x ,y)
+        self.log("test_loss", test_loss)
+
     def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=0.01)
+        optimizer = torch.optim.Adam(self.parameters(), lr=0.02)
+        return optimizer

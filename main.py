@@ -4,8 +4,7 @@ from rul_datasets import CmapssReader
 
 from models import rul_estimator
 
-# import rul_estimator
-# for fd in [1, 2, 3, 4]:
+# import rul_estimator # for fd in [1, 2, 3, 4]:
 
 if __name__ == "__main__":
     for fd in [1]:
@@ -18,6 +17,7 @@ if __name__ == "__main__":
             accelerator="auto",
             max_epochs=100,
         )
+        print(dm)
         trainer.fit(my_rul_estimator, dm)
 
         trainer.test(my_rul_estimator, dm)
