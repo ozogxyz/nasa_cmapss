@@ -1,4 +1,4 @@
-
+without*.ipynb
 .vscode/
 lightning_logs/
 *.csv
