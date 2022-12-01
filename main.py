@@ -2,7 +2,7 @@ import pytorch_lightning as pl
 import rul_datasets
 from rul_datasets import CmapssReader
 
-from models import rul_estimator
+from models import models
 
 # import rul_estimator # for fd in [1, 2, 3, 4]:
 
