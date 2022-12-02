@@ -17,10 +17,11 @@ if __name__ == "__main__":
         batch_size=30,
     )
     # instantiate model
-    cnn_lstm = Net(
-        dim_in=32,
-        dim_lstm=32,
-        kernel_size=32
+    cnn_lstm = Shcherbakov(
+        in_channels=14, 
+        out_channels=14, 
+        hidden_channels=30, 
+        kernel_size=30
     )
     # create trainer context
     trainer = pl.Trainer(
@@ -29,5 +30,5 @@ if __name__ == "__main__":
         max_epochs=100
     )
     # fit & test
-    trainer.fit(cnn_lstm, dm)  # (2)!
+    trainer.fit(cnn_lstm, dm)
     trainer.test(cnn_lstm, dm)
