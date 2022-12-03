@@ -56,7 +56,7 @@ class Network(LightningModule):
         loss = nn.functional.mse_loss(preds, labels)
         self.log("val_loss", loss)
 
-    def test_step(self, batch, batch_idx, dataloader_idx=None):
+    def test_step(self, batch, batch_idx, dataloader_idx=0):
         features, labels = batch
         preds = self.forward(features)
         loss = nn.functional.mse_loss(preds, labels)
