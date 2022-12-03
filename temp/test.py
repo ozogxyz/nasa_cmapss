@@ -2,6 +2,7 @@ import rul_datasets
 import warnings
 import pytorch_lightning as pl
 from models.models import Network
+from pytorch_lightning.loggers import TensorBoardLogger
 
 pl.seed_everything(42)
 warnings.filterwarnings("ignore", ".*does not have many workers.*")
@@ -13,7 +14,9 @@ if __name__ == "__main__":
     # create model
     model = Network(in_channels=14, out_channels=32, kernel_size=5)
     # create trainer context
-    trainer = pl.Trainer(accelerator="mps", devices=1, max_epochs=10)
+    logger = TensorBoardLogger("tb_logs", name="Shcherbakov")
+    trainer = pl.Trainer(accelerator="mps", devices=1, max_epochs=10, logger=logger)
     # fit & test
     trainer.fit(model, dm)
     trainer.test(model, dm)
+
