@@ -15,7 +15,7 @@ if __name__ == "__main__":
     # create model
     model = Network(in_channels=14, out_channels=32, kernel_size=5)
     # create trainer context
-    trainer = pl.Trainer(devices=1, max_epochs=10)
+    trainer = pl.Trainer(accelerator="mps", devices=1, max_epochs=10)
     # fit & test
     trainer.fit(model, dm)
     trainer.test(model, dm)
