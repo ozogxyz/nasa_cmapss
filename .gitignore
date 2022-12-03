@@ -1,4 +1,5 @@
 temp/
+tb_logs/
 Icon
 without*.ipynb
 .vscode/
