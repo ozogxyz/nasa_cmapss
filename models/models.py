@@ -179,13 +179,13 @@ class Network(LightningModule):
         features = self.maxpool(features)
 
         # LSTM layers
-        h_0 = torch.zeros(self.num_layers, features.size(1), 16)
-        c_0 = torch.zeros(self.num_layers, features.size(1), 16)
+        h_0 = torch.zeros(self.num_layers, features.size(1), 16).to("mps:0")
+        c_0 = torch.zeros(self.num_layers, features.size(1), 16).to("mps:0")
         output, (h_n, c_n) = self.lstm_1(features, (h_0, c_0))
         output = self.tanh(self.dropout(output))
 
-        h_0 = torch.zeros(self.num_layers, output.size(1), output.size(2) * 2)
-        c_0 = torch.zeros(self.num_layers, output.size(1), output.size(2) * 2)
+        h_0 = torch.zeros(self.num_layers, output.size(1), output.size(2) * 2).to("mps:0")
+        c_0 = torch.zeros(self.num_layers, output.size(1), output.size(2) * 2).to("mps:0")
         output, (h_n, c_n) = self.lstm_2(output, (h_0, c_0))
         output = self.tanh(self.dropout(output))
 

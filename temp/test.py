@@ -18,4 +18,4 @@ if __name__ == "__main__":
     trainer = pl.Trainer(devices=1, max_epochs=10)
     # fit & test
     trainer.fit(model, dm)
-    # trainer.test(model, dm)
+    trainer.test(model, dm)
