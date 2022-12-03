@@ -153,3 +153,26 @@ class Test(LightningModule):
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=0.02)
         return optimizer
+
+
+class Network(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size):
+        super().__init__()
+        # CNN feature extraction part
+        self.conv_1 = nn.Conv1d(in_channels, out_channels, kernel_size)
+        self.conv_2 = nn.Conv1d(out_channels, out_channels * 2, kernel_size - 2)
+        self.relu = nn.ReLU()
+        self.lstm = nn.LSTM((64, 8), 50)
+        self.tanh = nn.Tanh()
+
+    def forward(self, time_series):
+        interim = self.relu(self.conv_1(time_series))
+        features = self.relu(self.conv_2(interim))
+
+        h_0 = torch.zeros(features.size(0), features.size(0))
+        c_0 = torch.zeros(features.size(0), features.size(0))
+        output, (h_n, c_n) = self.lstm_1(features, (h_0, c_0))
+        # h_n = F.dropout(F.tanh(h_n), p=0.2)
+        # c_n = F.dropout(F.tanh(c_n), p=0.2)
+
+        return features
