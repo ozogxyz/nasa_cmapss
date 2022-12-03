@@ -1,10 +1,8 @@
 import rul_datasets
-import torch
 import warnings
-
 import pytorch_lightning as pl
-
 from models.models import Network
+
 pl.seed_everything(42)
 warnings.filterwarnings("ignore", ".*does not have many workers.*")
 
