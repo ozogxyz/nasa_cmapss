@@ -17,12 +17,7 @@ if __name__ == "__main__":
         batch_size=30,
     )
     # instantiate model
-    cnn_lstm = Shcherbakov(
-        in_channels=14, 
-        out_channels=14, 
-        hidden_channels=30, 
-        kernel_size=30
-    )
+    cnn_lstm = Shcherbakov()
     # create trainer context
     trainer = pl.Trainer(
         accelerator='mps',
