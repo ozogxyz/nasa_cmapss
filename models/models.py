@@ -123,11 +123,11 @@ class Ozoglu(LightningModule):
         loss = torch.sqrt(self.loss(preds.flatten(), labels))
         self.log("val_loss", loss)
 
-    def test_step(self, batch, batch_idx, dataloader_idx=None):
+    def test_step(self, batch, batch_idx, dataloader_idx=1):
         features, labels = batch
         preds = self.forward(features)
         loss = torch.sqrt(self.loss(preds.flatten(), labels))
-        self.log(f"MAE:", loss)
+        self.log(f'RMSE for dataset FD00{dataloader_idx}.txt:\t {loss:.3f}')
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=0.01)
