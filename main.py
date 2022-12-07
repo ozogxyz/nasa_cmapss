@@ -11,7 +11,7 @@ warnings.filterwarnings("ignore", ".*does not have many workers.*")
 if __name__ == "__main__":
     # read data
     cmapss_fd1 = rul_datasets.CmapssReader(fd=1)
-    dm = rul_datasets.RulDataModule(cmapss_fd1, batch_size=32)
+    dm = rul_datasets.RulDataModule(cmapss_fd1, batch_size=200)
     # create model
     model = Shcherbakov()
     # create trainer context

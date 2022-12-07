@@ -16,7 +16,7 @@ class RMSELoss(nn.Module):
 
 
 class Shcherbakov(LightningModule):
-    def __init__(self, in_channels=14, out_channels=32, kernel_size=5, num_layers=2, hidden_size=16):
+    def __init__(self, in_channels=14, out_channels=32, kernel_size=5, num_layers=2, hidden_size=96):
         super().__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -36,17 +36,19 @@ class Shcherbakov(LightningModule):
         self.maxpool = nn.MaxPool1d(kernel_size=3)
 
         # LSTM Part
-        self.lstm = nn.LSTM(input_size=512, hidden_size=self.hidden_size, num_layers=self.num_layers, dropout=0.2)
+        self.lstm1 = nn.LSTM(input_size=512, hidden_size=self.hidden_size, num_layers=self.num_layers, dropout=0.2)
+        self.lstm2 = nn.LSTM(input_size=self.hidden_size, hidden_size=self.hidden_size, num_layers=self.num_layers, dropout=0.2)
 
         # Regressor part
         self.regressor = nn.Sequential(
             # nn.Linear(512, 256),
             # nn.ReLU(),
-            # nn.Linear(256, 128),
-            # nn.ReLU(),
-            # nn.Linear(128, 64),
-            # nn.ReLU(),
-            nn.Linear(16, 1),
+            nn.Linear(96, 48),
+            nn.ReLU(),
+            nn.Linear(48, 24),
+            nn.ReLU(),
+            nn.Linear(24, 1),
+            nn.ReLU(),
         )
 
     def forward(self, time_series):
@@ -55,13 +57,17 @@ class Shcherbakov(LightningModule):
         features = self.conv_2(features)
         features = self.maxpool(features)
         features = torch.flatten(features, start_dim=1)
+
         # LSTM layers
-        # h_0 = torch.zeros(self.num_layers, self.hidden_size).to("mps")
-        # c_0 = torch.zeros(self.num_layers, self.hidden_size).to("mps")
-        h_0 = torch.zeros(self.num_layers, self.hidden_size)
-        c_0 = torch.zeros(self.num_layers, self.hidden_size)
-        output, (h_n, c_n) = self.lstm(features, (h_0, c_0))
+        h_0 = torch.zeros(self.num_layers, self.hidden_size).to("mps")
+        c_0 = torch.zeros(self.num_layers, self.hidden_size).to("mps")
+        # h_0 = torch.zeros(self.num_layers, self.hidden_size)
+        # c_0 = torch.zeros(self.num_layers, self.hidden_size)
+        output, (h_n, c_n) = self.lstm1(features, (h_0, c_0))
         output = torch.tanh(output)
+        output, (h_n, c_n) = self.lstm2(output, (h_n, c_n))
+        output = torch.tanh(output)
+
         # Regressor
         output = self.regressor(output)
         return output
@@ -86,5 +92,5 @@ class Shcherbakov(LightningModule):
         self.log(f'RMSE for dataset FD00{dataloader_idx}.txt', loss)
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=0.01)
+        optimizer = torch.optim.Adam(self.parameters(), lr=0.001)
         return optimizer
