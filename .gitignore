@@ -1,4 +1,5 @@
 temp/
+notebooks/
 tb_logs/
 Icon
 without*.ipynb
