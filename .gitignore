@@ -1,8 +1,9 @@
 .DS_Store
 *.ipynb
 Icon*
+temp/*
+temp*
 temp/
-notebooks/
 tb_logs/
 Icon
 without*.ipynb
