@@ -92,8 +92,6 @@ class Cnn1dLSTM(LightningModule):
         :param time_series: tensor([batch_size, 14, 30])
         :return: predictions: tensor([batch_size, 1])
         """
-        # Swap window size and feature columns for convolution
-        # time_series = torch.moveaxis(time_series, 2, 1)
 
         # CNN feature extraction
         features = self.relu(self.conv_1(time_series))
@@ -113,7 +111,7 @@ class Cnn1dLSTM(LightningModule):
         lstm_output = self.tanh(lstm_output)
 
         # Regressor
-        # regressor_input = lstm_output[:, -1]
+        lstm_output = lstm_output[:, -1]
         output = self.relu(self.fc_1(lstm_output))
         output = self.fc_2(output)
         return output
