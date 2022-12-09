@@ -27,12 +27,12 @@ class Cnn1dLSTM(LightningModule):
         kernel_size: int = 5,
         maxpool_kernel: int = 3,
         num_classes:  int = 1,
-        input_size: int = 64,
-        hidden_size: int = 96,
+        input_size: int = 14,
+        hidden_size: int = 50,
         num_layers: int = 2,
         maxpool_stride: Optional[int] = 2,
         window_size: Optional[int] = 30,
-        flatten: Optional[bool] = True,
+        flatten: Optional[bool] = False,
     ):
         """
         :param batch_size: Input batch size.
@@ -63,14 +63,14 @@ class Cnn1dLSTM(LightningModule):
 
         # CNN feature extraction part
         self.conv_1 = nn.Conv1d(in_channels, out_channels, kernel_size)
-        self.conv_2 = nn.Conv1d(out_channels, out_channels*2, kernel_size-2)
+        self.conv_2 = nn.Conv1d(out_channels, out_channels, kernel_size-2)
         self.maxpool = nn.MaxPool1d(kernel_size=maxpool_kernel, stride=maxpool_stride)
 
         conv_out_dim = window_size - kernel_size - 1
-        seq_length = out_channels * 2
+        seq_length = out_channels
         maxpool_out_dim = (conv_out_dim - maxpool_kernel) // maxpool_stride + 1
         if flatten:
-            embedding_length = maxpool_out_dim * out_channels * 2
+            embedding_length = maxpool_out_dim * out_channels
         else:
             embedding_length = maxpool_out_dim
 
@@ -78,8 +78,8 @@ class Cnn1dLSTM(LightningModule):
         self.lstm = nn.LSTM(embedding_length, hidden_size)
 
         # Regressor part
-        self.fc_1 = nn.Linear(hidden_size, 24)
-        self.fc_2 = nn.Linear(24, num_classes)
+        self.fc_1 = nn.Linear(hidden_size, hidden_size // 2)
+        self.fc_2 = nn.Linear(hidden_size // 2, num_classes)
 
         # Activators etc
         self.relu = nn.ReLU()
@@ -104,7 +104,8 @@ class Cnn1dLSTM(LightningModule):
 
         # Max-pooling layer
         features = self.maxpool(features)
-        features = torch.flatten(features, start_dim=1)
+        if self.flatten:
+            features = torch.flatten(features, start_dim=1)
 
         # LSTM layers input: tensor of shape (L, N, H_in) for un-batched input, (L, N, H_in) when batch_first=False
         # or (N, L, Hin) when batch_first=True. Here features is of size (N=200, L=64, H_in=maxpool_out). h_0: tensor
@@ -112,6 +113,8 @@ class Cnn1dLSTM(LightningModule):
         # state for each element in the input sequence. Defaults to zeros if (h_0, c_0) is not provided.
         h_0 = torch.zeros(self.num_layers, self.batch_size, self.hidden_size).to("mps")
         c_0 = torch.zeros(self.num_layers, self.batch_size, self.hidden_size).to("mps")
+
+        features = torch.reshape(features, (features.size(0), 1, features.size(1)))
         lstm_output, hidden_state = self.lstm(features)
         lstm_output = self.tanh(lstm_output)
 
@@ -125,10 +128,10 @@ class Cnn1dLSTM(LightningModule):
     def training_step(self, batch):
         time_series, labels = batch
         predictions = self.forward(time_series)
-        # loss = RMSELoss().forward(predictions=predictions, labels=labels)
+        loss = RMSELoss().forward(predictions=predictions, labels=labels)
         # criterion = nn.MSELoss()
         # loss = criterion(predictions.flatten(), labels)
-        loss = RMSELoss().forward(predictions, labels)
+        # loss = RMSELoss().forward(predictions, labels)
         self.log("train_loss", loss)
         return loss
 
