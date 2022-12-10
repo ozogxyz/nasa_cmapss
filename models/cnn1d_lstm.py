@@ -6,16 +6,18 @@ from typing import Union, List, Tuple, Dict, Optional
 
 PYTORCH_ENABLE_MPS_FALLBACK = 1
 
-
-class RMSELoss(nn.Module):
-    def __init__(self, eps=1e-6):
-        super().__init__()
-        self.mse = nn.MSELoss()
-        self.eps = eps
-
-    def forward(self, predictions, labels):
-        loss = torch.sqrt(self.mse(predictions.flatten(), labels) + self.eps)
-        return loss
+# Check first that CUDA then MPS is available, if not fallback to CPU
+if torch.cuda.is_available():
+    device = "cuda:0"
+elif not torch.backends.mps.is_available():
+    if not torch.backends.mps.is_built():
+        print("MPS not available because the current PyTorch install was not "
+              "built with MPS enabled.")
+    else:
+        print("MPS not available because the current MacOS version is not 12.3+ "
+              "and/or you do not have an MPS-enabled device on this machine.")
+else:
+    device = torch.device("mps")
 
 
 class Cnn1dLSTM(LightningModule):
@@ -28,7 +30,7 @@ class Cnn1dLSTM(LightningModule):
         maxpool_kernel: int = 3,
         num_classes:  int = 1,
         input_size: int = 14,
-        hidden_size: int = 50,
+        hidden_size: int = 32,
         num_layers: int = 2,
         maxpool_stride: Optional[int] = 2,
         window_size: Optional[int] = 30,
@@ -49,7 +51,6 @@ class Cnn1dLSTM(LightningModule):
 
         """
         super().__init__()
-        self.batch_size = batch_size
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.kernel_size = kernel_size
@@ -60,6 +61,7 @@ class Cnn1dLSTM(LightningModule):
         self.hidden_size = hidden_size
         self.maxpool_stride = maxpool_stride
         self.flatten = flatten
+        self.batch_size = batch_size
 
         # CNN feature extraction part
         self.conv_1 = nn.Conv1d(in_channels, out_channels, kernel_size)
@@ -70,7 +72,7 @@ class Cnn1dLSTM(LightningModule):
         seq_length = out_channels
         maxpool_out_dim = (conv_out_dim - maxpool_kernel) // maxpool_stride + 1
         if flatten:
-            embedding_length = maxpool_out_dim * out_channels
+            embedding_length = maxpool_out_dim * seq_length
         else:
             embedding_length = maxpool_out_dim
 
@@ -85,17 +87,13 @@ class Cnn1dLSTM(LightningModule):
         self.relu = nn.ReLU()
         self.tanh = nn.Tanh()
 
-    def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=0.1)
-        return optimizer
-
     def forward(self, time_series):
         """
         rul-datasets library gives batches of:
         n_batch x n_features(14) x window_size(30)
 
         :param time_series: tensor([batch_size, 14, 30])
-        :return: predictions: tensor([batch_size, 1])
+        :return: predictions: tensor([batch_size])
         """
 
         # CNN feature extraction
@@ -111,10 +109,9 @@ class Cnn1dLSTM(LightningModule):
         # or (N, L, Hin) when batch_first=True. Here features is of size (N=200, L=64, H_in=maxpool_out). h_0: tensor
         # of shape (D*num_layers, H_out) for un-batched input or (D*num_layers, N, H_out) containing the initial hidden
         # state for each element in the input sequence. Defaults to zeros if (h_0, c_0) is not provided.
-        h_0 = torch.zeros(self.num_layers, self.batch_size, self.hidden_size).to("mps")
-        c_0 = torch.zeros(self.num_layers, self.batch_size, self.hidden_size).to("mps")
+        h_0 = torch.zeros(self.num_layers, self.batch_size, self.hidden_size).to(device)
+        c_0 = torch.zeros(self.num_layers, self.batch_size, self.hidden_size).to(device)
 
-        features = torch.reshape(features, (features.size(0), 1, features.size(1)))
         lstm_output, hidden_state = self.lstm(features)
         lstm_output = self.tanh(lstm_output)
 
@@ -123,27 +120,32 @@ class Cnn1dLSTM(LightningModule):
             lstm_output = lstm_output[:, -1]
         output = self.relu(self.fc_1(lstm_output))
         output = self.fc_2(output)
-        return output
+        return output.flatten()
 
     def training_step(self, batch):
         time_series, labels = batch
         predictions = self.forward(time_series)
-        loss = RMSELoss().forward(predictions=predictions, labels=labels)
-        # criterion = nn.MSELoss()
-        # loss = criterion(predictions.flatten(), labels)
-        # loss = RMSELoss().forward(predictions, labels)
+        loss_fn = nn.MSELoss()
+        loss = loss_fn(predictions, labels)
         self.log("train_loss", loss)
         return loss
 
     def validation_step(self, batch, batch_idx):
         features, labels = batch
         predictions = self.forward(features)
-        loss = RMSELoss().forward(predictions=predictions, labels=labels)
+        loss_fn = nn.MSELoss()
+        loss = loss_fn(predictions, labels)
         self.log("val_loss", loss)
 
     def test_step(self, batch, batch_idx, dataloader_idx=1):
         features, labels = batch
         predictions = self.forward(features)
-        loss = RMSELoss().forward(predictions=predictions, labels=labels)
-        self.log(f'RMSE for dataset FD00{dataloader_idx}.txt', loss)
+        loss_fn = nn.MSELoss()
+        loss = loss_fn(predictions, labels)
+        self.log(f'test_loss for dataset FD00{dataloader_idx}.txt', loss)
+
+    def configure_optimizers(self):
+        optimizer = torch.optim.Adam(self.parameters())
+        return optimizer
+
 

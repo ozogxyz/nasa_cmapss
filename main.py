@@ -2,7 +2,7 @@ import argparse
 import rul_datasets
 import warnings
 import pytorch_lightning as pl
-from models.cnn1d_lstm import Cnn1dLSTM
+from models.cnn1d_lstm import Cnn1dLSTM, CNN1dLSTM_Lightning
 from pytorch_lightning.loggers import TensorBoardLogger
 
 pl.seed_everything(42)
@@ -33,7 +33,7 @@ if __name__ == "__main__":
     cmapss_fd1 = rul_datasets.CmapssReader(fd)
     dm = rul_datasets.RulDataModule(cmapss_fd1, batch_size=batch_size)
     # create model
-    model = Cnn1dLSTM(flatten=True)
+    model = CNN1dLSTM_Lightning(flatten=True)
     # create trainer context
     logger = TensorBoardLogger("tb_logs", name="Cnn1dLSTM")
     trainer = pl.Trainer(accelerator="auto", devices=1, max_epochs=max_epochs, logger=logger)
