@@ -1,8 +1,8 @@
+from typing import Optional
+
 import torch
 import torch.nn as nn
 from pytorch_lightning import LightningModule
-from typing import Union, List, Tuple, Dict, Optional
-
 
 PYTORCH_ENABLE_MPS_FALLBACK = 1
 
@@ -109,8 +109,8 @@ class Cnn1dLSTM(LightningModule):
         # or (N, L, Hin) when batch_first=True. Here features is of size (N=200, L=64, H_in=maxpool_out). h_0: tensor
         # of shape (D*num_layers, H_out) for un-batched input or (D*num_layers, N, H_out) containing the initial hidden
         # state for each element in the input sequence. Defaults to zeros if (h_0, c_0) is not provided.
-        h_0 = torch.zeros(self.num_layers, self.batch_size, self.hidden_size).to(device)
-        c_0 = torch.zeros(self.num_layers, self.batch_size, self.hidden_size).to(device)
+        # h_0 = torch.zeros(self.num_layers, self.batch_size, self.hidden_size).to(device)
+        # c_0 = torch.zeros(self.num_layers, self.batch_size, self.hidden_size).to(device)
 
         lstm_output, hidden_state = self.lstm(features)
         lstm_output = self.tanh(lstm_output)
@@ -142,10 +142,9 @@ class Cnn1dLSTM(LightningModule):
         predictions = self.forward(features)
         loss_fn = nn.MSELoss()
         loss = loss_fn(predictions, labels)
-        self.log(f'test_loss for dataset FD00{dataloader_idx}.txt', loss)
+        self.log(f'test_loss for dataset FD00{dataloader_idx}.txt', torch.sqrt(loss))
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters())
         return optimizer
-
 
