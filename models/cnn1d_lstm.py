@@ -34,7 +34,6 @@ class Cnn1dLSTM(LightningModule):
         maxpool_stride: Optional[int],
         window_size: Optional[int],
         lr : int,
-        flatten: Optional[bool] = False,
     ):
         """
         :param batch_size: Input batch size.
@@ -57,22 +56,18 @@ class Cnn1dLSTM(LightningModule):
         self.num_layers = num_layers
         self.hidden_size = hidden_size
         self.maxpool_stride = maxpool_stride
-        self.flatten = flatten
         self.batch_size = batch_size
         self.lr = lr
 
         # CNN feature extraction part
         self.conv_1 = nn.Conv1d(in_channels, out_channels, kernel_size)
-        self.conv_2 = nn.Conv1d(out_channels, out_channels, kernel_size-2)
+        self.conv_2 = nn.Conv1d(out_channels, out_channels*2, kernel_size-2)
         self.maxpool = nn.MaxPool1d(kernel_size=maxpool_kernel, stride=maxpool_stride)
 
         conv_out_dim = window_size - kernel_size - 1
-        seq_length = out_channels
+        seq_length = out_channels*2
         maxpool_out_dim = (conv_out_dim - maxpool_kernel) // maxpool_stride + 1
-        if flatten:
-            embedding_length = maxpool_out_dim * seq_length
-        else:
-            embedding_length = maxpool_out_dim
+        embedding_length = maxpool_out_dim
 
         # LSTM Part
         self.lstm = nn.LSTM(embedding_length, hidden_size, num_layers, dropout=0.2)
@@ -100,22 +95,12 @@ class Cnn1dLSTM(LightningModule):
 
         # Max-pooling layer
         features = self.maxpool(features)
-        if self.flatten:
-            features = torch.flatten(features, start_dim=1)
-
-        # LSTM layers input: tensor of shape (L, N, H_in) for un-batched input, (L, N, H_in) when batch_first=False
-        # or (N, L, Hin) when batch_first=True. Here features is of size (N=200, L=64, H_in=maxpool_out). h_0: tensor
-        # of shape (D*num_layers, H_out) for un-batched input or (D*num_layers, N, H_out) containing the initial hidden
-        # state for each element in the input sequence. Defaults to zeros if (h_0, c_0) is not provided.
-        # h_0 = torch.zeros(self.num_layers, self.batch_size, self.hidden_size).to(device)
-        # c_0 = torch.zeros(self.num_layers, self.batch_size, self.hidden_size).to(device)
 
         lstm_output, _ = self.lstm(features)
         lstm_output = self.tanh(lstm_output)
+        lstm_output = lstm_output[:, -1]
 
         # Regressor
-        if not self.flatten:
-            lstm_output = lstm_output[:, -1]
         output = self.relu(self.fc_1(lstm_output))
         output = self.fc_2(output)
         return output.flatten()
