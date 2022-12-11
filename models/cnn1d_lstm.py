@@ -23,17 +23,17 @@ else:
 class Cnn1dLSTM(LightningModule):
     def __init__(
         self,
-        batch_size: int = 200,
-        in_channels: int = 14,
-        out_channels: int = 32,
-        kernel_size: int = 5,
-        maxpool_kernel: int = 3,
-        num_classes:  int = 1,
-        input_size: int = 14,
-        hidden_size: int = 32,
-        num_layers: int = 2,
-        maxpool_stride: Optional[int] = 2,
-        window_size: Optional[int] = 30,
+        batch_size: int,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int,
+        maxpool_kernel: int,
+        num_classes:  int,
+        hidden_size: int,
+        num_layers: int,
+        maxpool_stride: Optional[int],
+        window_size: Optional[int],
+        lr : int,
         flatten: Optional[bool] = False,
     ):
         """
@@ -43,8 +43,6 @@ class Cnn1dLSTM(LightningModule):
         :param kernel_size: Kernel size for 1st Conv1d, will be kernel_size - 2 in the next later.
         :param maxpool_kernel: Kernel size for pooling layer.
         :param num_classes:
-        :param input_size: Sequence length for the LSTM layer. Equals to 2 * out_channels,
-               which is the output of the convolutional layers.
         :param hidden_size: Size of the hidden state in LSTM layers.
         :param num_layers: Determines how many LSTM layers will be stacked.
         :param maxpool_stride: Pooling stride.
@@ -55,13 +53,13 @@ class Cnn1dLSTM(LightningModule):
         self.out_channels = out_channels
         self.kernel_size = kernel_size
         self.maxpool_kernel = maxpool_kernel
-        self.input_size = input_size
         self.num_classes = num_classes
         self.num_layers = num_layers
         self.hidden_size = hidden_size
         self.maxpool_stride = maxpool_stride
         self.flatten = flatten
         self.batch_size = batch_size
+        self.lr = lr
 
         # CNN feature extraction part
         self.conv_1 = nn.Conv1d(in_channels, out_channels, kernel_size)
@@ -77,7 +75,7 @@ class Cnn1dLSTM(LightningModule):
             embedding_length = maxpool_out_dim
 
         # LSTM Part
-        self.lstm = nn.LSTM(embedding_length, hidden_size)
+        self.lstm = nn.LSTM(embedding_length, hidden_size, num_layers, dropout=0.2)
 
         # Regressor part
         self.fc_1 = nn.Linear(hidden_size, hidden_size // 2)
@@ -112,7 +110,7 @@ class Cnn1dLSTM(LightningModule):
         # h_0 = torch.zeros(self.num_layers, self.batch_size, self.hidden_size).to(device)
         # c_0 = torch.zeros(self.num_layers, self.batch_size, self.hidden_size).to(device)
 
-        lstm_output, hidden_state = self.lstm(features)
+        lstm_output, _ = self.lstm(features)
         lstm_output = self.tanh(lstm_output)
 
         # Regressor
@@ -145,6 +143,6 @@ class Cnn1dLSTM(LightningModule):
         self.log(f'test_loss for dataset FD00{dataloader_idx}.txt', torch.sqrt(loss))
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters())
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
         return optimizer
 
