@@ -27,7 +27,6 @@ if __name__ == "__main__":
     num_layers = params.get('num_layers')
     maxpool_stride = params.get('maxpool_stride')
     window_size = params.get('window_size')
-    flatten = params.get('flatten')
     lr = params.get('lr')
 
     # read data
@@ -45,14 +44,13 @@ if __name__ == "__main__":
                 num_layers = num_layers,
                 maxpool_stride = maxpool_stride,
                 window_size = window_size,
-                flatten = flatten,
                 lr = lr,
     )
 
     # create trainer context
     early_stop_callback = EarlyStopping(monitor="train_loss", patience=3, min_delta=100, mode='min')
     logger = TensorBoardLogger("tb_logs", name="Cnn1dLSTM")
-    trainer = pl.Trainer(callbacks=[early_stop_callback], max_epochs=max_epochs, logger=logger)
+    trainer = pl.Trainer(callbacks=[early_stop_callback], accelerator='auto',max_epochs=max_epochs, logger=logger)
 
     os.system("bat params.yaml")
 
