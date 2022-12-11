@@ -15,19 +15,26 @@ if __name__ == "__main__":
     with open('params.yaml', 'r') as file:
         params = yaml.safe_load(file)
 
-    batch_size = params.get('batch_size')
-    fd = params.get('filename')
-    max_epochs = params.get('epochs')
-    in_channels = params.get('in_channels')
-    out_channels = params.get('out_channels')
-    kernel_size = params.get('kernel_size')
-    maxpool_kernel = params.get('maxpool_kernel')
-    num_classes = params.get('num_classes')
-    hidden_size = params.get('hidden_size')
-    num_layers = params.get('num_layers')
-    maxpool_stride = params.get('maxpool_stride')
-    window_size = params.get('window_size')
-    lr = params.get('lr')
+    # dataset params
+    fd = params.get('dataset').get('filename')
+    batch_size = params.get('dataset').get('batch_size')
+
+    # model params
+    in_channels = params.get('model').get('in_channels')
+    out_channels = params.get('model').get('out_channels')
+    kernel_size = params.get('model').get('kernel_size')
+    maxpool_kernel = params.get('model').get('maxpool_kernel')
+    num_classes = params.get('model').get('num_classes')
+    hidden_size = params.get('model').get('hidden_size')
+    num_layers = params.get('model').get('num_layers')
+    maxpool_stride = params.get('model').get('maxpool_stride')
+    window_size = params.get('model').get('window_size')
+
+    # training params
+    lr = params.get('training').get('lr')
+    max_epochs = params.get('training').get('epochs')
+    patience = params.get('training').get('patience')
+    min_delta = params.get('training').get('min_delta')
 
     # read data
     cmapss_fd1 = rul_datasets.CmapssReader(fd)
@@ -48,7 +55,7 @@ if __name__ == "__main__":
     )
 
     # create trainer context
-    early_stop_callback = EarlyStopping(monitor="train_loss", patience=3, min_delta=100, mode='min')
+    early_stop_callback = EarlyStopping(monitor="train_loss", patience=patience, min_delta=min_delta, mode='min')
     logger = TensorBoardLogger("tb_logs", name="Cnn1dLSTM")
     trainer = pl.Trainer(callbacks=[early_stop_callback], accelerator='auto',max_epochs=max_epochs, logger=logger)
 
