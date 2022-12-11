@@ -5,6 +5,7 @@ import warnings
 import pytorch_lightning as pl
 from models.cnn1d_lstm import Cnn1dLSTM
 from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
 pl.seed_everything(42)
 warnings.filterwarnings("ignore", ".*does not have many workers.*")
@@ -49,8 +50,9 @@ if __name__ == "__main__":
     )
 
     # create trainer context
+    early_stop_callback = EarlyStopping(monitor="train_loss", patience=3, min_delta=100, mode='min')
     logger = TensorBoardLogger("tb_logs", name="Cnn1dLSTM")
-    trainer = pl.Trainer(accelerator='auto',max_epochs=max_epochs, logger=logger)
+    trainer = pl.Trainer(callbacks=[early_stop_callback], max_epochs=max_epochs, logger=logger)
 
     os.system("bat params.yaml")
 
