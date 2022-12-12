@@ -3,6 +3,7 @@ from typing import Optional
 import torch
 import torch.nn as nn
 from pytorch_lightning import LightningModule
+import rul_datasets
 
 PYTORCH_ENABLE_MPS_FALLBACK = 1
 
@@ -33,7 +34,7 @@ class Cnn1dLSTM(LightningModule):
         num_layers: int,
         maxpool_stride: Optional[int],
         window_size: Optional[int],
-        learning_rate : int,
+        learning_rate: int,
     ):
         """
         :param batch_size: Input batch size.
@@ -63,19 +64,20 @@ class Cnn1dLSTM(LightningModule):
         # CNN feature extraction part
         self.conv_1 = nn.Conv1d(in_channels, out_channels, kernel_size)
         self.conv_2 = nn.Conv1d(out_channels, out_channels*2, kernel_size-2)
-        self.maxpool = nn.MaxPool1d(kernel_size=maxpool_kernel, stride=maxpool_stride)
+        self.maxpool = nn.MaxPool1d(
+            kernel_size=maxpool_kernel, stride=maxpool_stride)
 
         conv_out_dim = window_size - kernel_size - 1
         maxpool_out_dim = (conv_out_dim - maxpool_kernel) // maxpool_stride + 1
         embedding_length = maxpool_out_dim
 
         # LSTM Part
-        self.lstm = nn.LSTM(embedding_length, hidden_size, num_layers, dropout=0.2)
+        self.lstm = nn.LSTM(embedding_length, hidden_size,
+                            num_layers, dropout=0.2)
 
         # Regressor part
         self.fc_1 = nn.Linear(hidden_size, hidden_size // 2)
         self.fc_2 = nn.Linear(hidden_size // 2, num_classes)
-
 
     def forward(self, time_series):
         """
@@ -112,7 +114,6 @@ class Cnn1dLSTM(LightningModule):
         self.log("train_loss", loss)
         return loss
 
-
     def validation_step(self, batch, batch_idx):
         features, labels = batch
         predictions = self.forward(features)
@@ -127,9 +128,14 @@ class Cnn1dLSTM(LightningModule):
         loss_fn = nn.MSELoss()
         loss = loss_fn(predictions, labels)
         loss = torch.sqrt(loss)
-        self.log(f'test_loss: ', loss.item():.3f)
+        self.log(f'test_loss: ', loss)
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
         return optimizer
 
+    def train_dataloader(self):
+        return super().train_dataloader()
+    
+    def val_dataloader(self):
+        return super().val_dataloader()

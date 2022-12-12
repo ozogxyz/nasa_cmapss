@@ -35,7 +35,7 @@ if __name__ == "__main__":
     window_size = params.get('model').get('window_size')
 
     # training params
-    lr = params.get('training').get('lr')
+    learning_rate = params.get('training').get('learning_rate')
     max_epochs = params.get('training').get('epochs')
     patience = params.get('training').get('patience')
     min_delta = params.get('training').get('min_delta')
@@ -54,7 +54,7 @@ if __name__ == "__main__":
         num_layers=num_layers,
         maxpool_stride=maxpool_stride,
         window_size=window_size,
-        lr=lr,
+        learning_rate=learning_rate,
     )
 
     ####################################
@@ -75,7 +75,7 @@ if __name__ == "__main__":
         mode='min'
     )
     learning_rate_finder = LearningRateFinder()
-    # learning_rate_monitor = LearningRateMonitor()
+    learning_rate_monitor = LearningRateMonitor()
     model_summary = RichModelSummary()
     print_callback = PrintCallback()
     progress_bar = RichProgressBar()
@@ -86,9 +86,9 @@ if __name__ == "__main__":
     ####################################
     logger = TensorBoardLogger(save_dir='tmp/tb_logs', log_graph=True)
     trainer = pl.Trainer(
-        auto_lr_find=True,
+        # auto_lr_find=True,
         accelerator='auto',
-        callbacks=[early_stop_callback, learning_rate_finder, model_summary,
+        callbacks=[early_stop_callback, model_summary,
                    print_callback, progress_bar, timer],
         gradient_clip_val=10,
         max_epochs=max_epochs,
@@ -97,8 +97,15 @@ if __name__ == "__main__":
     ####################################
     # 5. Hyper-parameter Tuning
     ####################################
-    # Run learning rate finder
-    lr_finder = trainer.tuner.lr_find(model)
+
+    #####################################
+    # 6. Fit
+    #####################################
+    model.hparams.lr = 0.15
+    trainer.fit(model, dm)
+    trainer.test(model, dm)
+    
+    lr_finder = trainer.tuner.lr_find(model, num_training=1000)
 
     # Results can be found in
     print(lr_finder.results)
@@ -106,10 +113,3 @@ if __name__ == "__main__":
     # Plot with
     fig = lr_finder.plot(suggest=True)
     fig.show()
-
-    #####################################
-    # 5. Fit
-    #####################################
-    trainer.tune(model)
-    trainer.fit(model, dm)
-    trainer.test(model, dm)
