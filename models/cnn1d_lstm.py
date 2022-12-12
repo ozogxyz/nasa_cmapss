@@ -57,7 +57,8 @@ class Cnn1dLSTM(LightningModule):
         self.hidden_size = hidden_size
         self.maxpool_stride = maxpool_stride
         self.batch_size = batch_size
-        self.lr = lr
+        self.learning_rate = lr
+        self.save_hyperparameters()
 
         # CNN feature extraction part
         self.conv_1 = nn.Conv1d(in_channels, out_channels, kernel_size)
@@ -65,7 +66,6 @@ class Cnn1dLSTM(LightningModule):
         self.maxpool = nn.MaxPool1d(kernel_size=maxpool_kernel, stride=maxpool_stride)
 
         conv_out_dim = window_size - kernel_size - 1
-        seq_length = out_channels*2
         maxpool_out_dim = (conv_out_dim - maxpool_kernel) // maxpool_stride + 1
         embedding_length = maxpool_out_dim
 
@@ -76,9 +76,6 @@ class Cnn1dLSTM(LightningModule):
         self.fc_1 = nn.Linear(hidden_size, hidden_size // 2)
         self.fc_2 = nn.Linear(hidden_size // 2, num_classes)
 
-        # Activators etc
-        self.relu = nn.ReLU()
-        self.tanh = nn.Tanh()
 
     def forward(self, time_series):
         """
@@ -90,18 +87,19 @@ class Cnn1dLSTM(LightningModule):
         """
 
         # CNN feature extraction
-        features = self.relu(self.conv_1(time_series))
-        features = self.relu(self.conv_2(features))
+        features = torch.relu(self.conv_1(time_series))
+        features = torch.relu(self.conv_2(features))
 
         # Max-pooling layer
         features = self.maxpool(features)
 
         lstm_output, _ = self.lstm(features)
-        lstm_output = self.tanh(lstm_output)
+        lstm_output = torch.tanh(lstm_output)
         lstm_output = lstm_output[:, -1]
 
         # Regressor
-        output = self.relu(self.fc_1(lstm_output))
+        output = self.fc_1(lstm_output)
+        output = torch.relu(output)
         output = self.fc_2(output)
         return output.flatten()
 
@@ -110,14 +108,17 @@ class Cnn1dLSTM(LightningModule):
         predictions = self.forward(time_series)
         loss_fn = nn.MSELoss()
         loss = loss_fn(predictions, labels)
+        loss = torch.sqrt(loss)
         self.log("train_loss", loss)
         return loss
+
 
     def validation_step(self, batch, batch_idx):
         features, labels = batch
         predictions = self.forward(features)
         loss_fn = nn.MSELoss()
         loss = loss_fn(predictions, labels)
+        loss = torch.sqrt(loss)
         self.log("val_loss", loss)
 
     def test_step(self, batch, batch_idx, dataloader_idx=1):
@@ -125,9 +126,10 @@ class Cnn1dLSTM(LightningModule):
         predictions = self.forward(features)
         loss_fn = nn.MSELoss()
         loss = loss_fn(predictions, labels)
-        self.log(f'test_loss for dataset FD00{dataloader_idx}.txt', torch.sqrt(loss))
+        loss = torch.sqrt(loss)
+        self.log(f'test_loss for dataset FD00{dataloader_idx}.txt', loss)
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
         return optimizer
 

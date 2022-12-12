@@ -1,18 +1,18 @@
 dataset:
   filename : 1
-  batch_size : 200
+  batch_size : 256
 model:
   in_channels : 14
   out_channels : 32
   kernel_size : 5
   maxpool_kernel : 3
   num_classes : 1
-  hidden_size : 50
-  num_layers : 2
+  hidden_size : 96
+  num_layers : 4
   maxpool_stride : 2
   window_size : 30
 training:
-  lr : 0.01
+  lr : 0.1
   epochs : 200
-  patience: 5
-  min_delta: 50
+  patience: 10
+  min_delta: 10

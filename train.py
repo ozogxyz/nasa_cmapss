@@ -1,58 +1,101 @@
+import os
+import warnings
 import torch
+import pytorch_lightning as pl
 import rul_datasets
-
+import yaml
+from pytorch_lightning.callbacks import *
+from pytorch_lightning.loggers import TensorBoardLogger
+from utils.callbacks import PrintCallback
 from models.cnn1d_lstm import Cnn1dLSTM
-torch.manual_seed(42)
+from pprint import pprint
+
+pl.seed_everything(42)
+warnings.filterwarnings("ignore", ".*does not have many workers.*")
 
 
-if __name__ == '__main__':
-    cmapss_fd1 = rul_datasets.CmapssReader(fd=1)
-    dm = rul_datasets.RulDataModule(cmapss_fd1, batch_size=32)
-    dm.prepare_data()  # (1)!
-    dm.setup()  # (2)!
+if __name__ == "__main__":
+    # read hyperparameters
+    with open('params.yaml', 'r') as file:
+        params = yaml.safe_load(file)
 
-    model_1 = Cnn1dLSTM()  # (3)!
-    optim = torch.optim.Adam(model_1.parameters())
+    # dataset params
+    fd = params.get('dataset').get('filename')
+    batch_size = params.get('dataset').get('batch_size')
 
-    best_val_loss = torch.inf
+    # model params
+    in_channels = params.get('model').get('in_channels')
+    out_channels = params.get('model').get('out_channels')
+    kernel_size = params.get('model').get('kernel_size')
+    maxpool_kernel = params.get('model').get('maxpool_kernel')
+    num_classes = params.get('model').get('num_classes')
+    hidden_size = params.get('model').get('hidden_size')
+    num_layers = params.get('model').get('num_layers')
+    maxpool_stride = params.get('model').get('maxpool_stride')
+    window_size = params.get('model').get('window_size')
 
-    for epoch in range(100):
-        print(f"Train epoch {epoch}")
-        model_1.train()
-        for features, targets in dm.train_dataloader():
-            optim.zero_grad()
+    # training params
+    lr = params.get('training').get('lr')
+    max_epochs = params.get('training').get('epochs')
+    patience = params.get('training').get('patience')
+    min_delta = params.get('training').get('min_delta')
 
-            predictions = model_1(features)
-            loss = torch.sqrt(torch.mean((targets - predictions)**2))  # (4)!
-            loss.backward()
-            print(f"Training loss: {loss}")
+    
+    ####################################
+    # 1. Create Model
+    ####################################
+    model = Cnn1dLSTM(
+        batch_size=batch_size,
+        in_channels=in_channels,
+        out_channels=out_channels,
+        kernel_size=kernel_size,
+        maxpool_kernel=maxpool_kernel,
+        num_classes=num_classes,
+        hidden_size=hidden_size,
+        num_layers=num_layers,
+        maxpool_stride=maxpool_stride,
+        window_size=window_size,
+        lr=lr,
+    )
 
-            optim.step()
+    ####################################
+    # 2. Read Data
+    ####################################
+    cmapss_fd1 = rul_datasets.CmapssReader(fd)
+    dm = rul_datasets.RulDataModule(cmapss_fd1, batch_size=batch_size)
 
-        print(f"Validate epoch {epoch}")
-        model_1.eval()
-        val_loss = 0
-        num_samples = 0
-        for features, targets in dm.val_dataloader():
-            predictions = model_1(features)
-            loss = torch.sum((targets - predictions)**2)
-            val_loss += loss.detach()
-            num_samples += predictions.shape[0]
-        val_loss = torch.sqrt(val_loss / num_samples)  # (5)!
 
-        # if best_val_loss < val_loss:
-        #     break
-        # else:
-        #     best_val_loss = val_loss
-        #     print(f"Validation loss: {best_val_loss}")
-
-    test_loss = 0
-    num_samples = 0
-    for features, targets in dm.test_dataloader():
-        predictions = model_1(features)
-        loss = torch.sqrt(torch.dist(predictions, targets))
-        test_loss += loss.detach()
-        num_samples += predictions.shape[0]
-    test_loss = torch.sqrt(test_loss / num_samples)  # (6)!
-
-    print(f"Test loss: {test_loss}")
+    ####################################
+    # 3. Callbacks
+    ####################################
+    early_stop_callback = EarlyStopping(
+        monitor="val_loss", 
+        patience=patience, 
+        strict=False,
+        verbose=True,
+        min_delta=min_delta, 
+        mode='min'
+    )
+    learning_rate_finder = LearningRateFinder()
+    learning_rate_monitor = LearningRateMonitor()
+    model_summary = RichModelSummary()
+    print_callback = PrintCallback()
+    progress_bar = RichProgressBar()
+    timer = Timer()
+    
+    ####################################
+    # 4. Trainer
+    ####################################
+    logger = TensorBoardLogger(save_dir='tmp/tb_logs', log_graph=True)
+    trainer = pl.Trainer(
+        accelerator='auto',
+        callbacks=[early_stop_callback, learning_rate_finder, learning_rate_monitor, model_summary, print_callback, progress_bar, timer],
+        gradient_clip_val=10,
+        max_epochs=max_epochs,
+    )
+    
+    #####################################
+    # 5. Fit
+    #####################################
+    trainer.fit(model, dm)
+    trainer.test(model, dm)
