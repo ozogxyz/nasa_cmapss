@@ -33,7 +33,7 @@ class Cnn1dLSTM(LightningModule):
         num_layers: int,
         maxpool_stride: Optional[int],
         window_size: Optional[int],
-        lr : int,
+        learning_rate : int,
     ):
         """
         :param batch_size: Input batch size.
@@ -57,7 +57,7 @@ class Cnn1dLSTM(LightningModule):
         self.hidden_size = hidden_size
         self.maxpool_stride = maxpool_stride
         self.batch_size = batch_size
-        self.learning_rate = lr
+        self.learning_rate = learning_rate
         self.save_hyperparameters()
 
         # CNN feature extraction part
@@ -127,7 +127,7 @@ class Cnn1dLSTM(LightningModule):
         loss_fn = nn.MSELoss()
         loss = loss_fn(predictions, labels)
         loss = torch.sqrt(loss)
-        self.log(f'test_loss for dataset FD00{dataloader_idx}.txt', loss)
+        self.log(f'test_loss: ', loss.item():.3f)
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)

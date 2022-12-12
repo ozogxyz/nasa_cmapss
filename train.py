@@ -40,7 +40,6 @@ if __name__ == "__main__":
     patience = params.get('training').get('patience')
     min_delta = params.get('training').get('min_delta')
 
-    
     ####################################
     # 1. Create Model
     ####################################
@@ -64,38 +63,53 @@ if __name__ == "__main__":
     cmapss_fd1 = rul_datasets.CmapssReader(fd)
     dm = rul_datasets.RulDataModule(cmapss_fd1, batch_size=batch_size)
 
-
     ####################################
     # 3. Callbacks
     ####################################
     early_stop_callback = EarlyStopping(
-        monitor="val_loss", 
-        patience=patience, 
+        monitor="val_loss",
+        patience=patience,
         strict=False,
         verbose=True,
-        min_delta=min_delta, 
+        min_delta=min_delta,
         mode='min'
     )
     learning_rate_finder = LearningRateFinder()
-    learning_rate_monitor = LearningRateMonitor()
+    # learning_rate_monitor = LearningRateMonitor()
     model_summary = RichModelSummary()
     print_callback = PrintCallback()
     progress_bar = RichProgressBar()
     timer = Timer()
-    
+
     ####################################
     # 4. Trainer
     ####################################
     logger = TensorBoardLogger(save_dir='tmp/tb_logs', log_graph=True)
     trainer = pl.Trainer(
+        auto_lr_find=True,
         accelerator='auto',
-        callbacks=[early_stop_callback, learning_rate_finder, learning_rate_monitor, model_summary, print_callback, progress_bar, timer],
+        callbacks=[early_stop_callback, learning_rate_finder, model_summary,
+                   print_callback, progress_bar, timer],
         gradient_clip_val=10,
         max_epochs=max_epochs,
     )
-    
+
+    ####################################
+    # 5. Hyper-parameter Tuning
+    ####################################
+    # Run learning rate finder
+    lr_finder = trainer.tuner.lr_find(model)
+
+    # Results can be found in
+    print(lr_finder.results)
+
+    # Plot with
+    fig = lr_finder.plot(suggest=True)
+    fig.show()
+
     #####################################
     # 5. Fit
     #####################################
+    trainer.tune(model)
     trainer.fit(model, dm)
     trainer.test(model, dm)
