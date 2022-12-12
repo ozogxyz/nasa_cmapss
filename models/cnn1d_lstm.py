@@ -1,9 +1,9 @@
-from typing import Optional
+from typing import Any, Dict, Optional
 
 import torch
+import torchmetrics
 import torch.nn as nn
 from pytorch_lightning import LightningModule
-import rul_datasets
 
 PYTORCH_ENABLE_MPS_FALLBACK = 1
 
@@ -34,7 +34,7 @@ class Cnn1dLSTM(LightningModule):
         num_layers: int,
         maxpool_stride: Optional[int],
         window_size: Optional[int],
-        learning_rate: int,
+        lr: Optional[int],
     ):
         """
         :param batch_size: Input batch size.
@@ -58,24 +58,26 @@ class Cnn1dLSTM(LightningModule):
         self.hidden_size = hidden_size
         self.maxpool_stride = maxpool_stride
         self.batch_size = batch_size
-        self.learning_rate = learning_rate
+        self.lr = lr
+        
+        self.metric = torchmetrics.MeanSquaredError(squared=False)
         self.save_hyperparameters()
 
-        # CNN feature extraction part
+        # Convolutinal Layers
         self.conv_1 = nn.Conv1d(in_channels, out_channels, kernel_size)
         self.conv_2 = nn.Conv1d(out_channels, out_channels*2, kernel_size-2)
+        conv_out_dim = window_size - kernel_size - 1
+        
+        # Max-Pooling Layer
         self.maxpool = nn.MaxPool1d(
             kernel_size=maxpool_kernel, stride=maxpool_stride)
 
-        conv_out_dim = window_size - kernel_size - 1
-        maxpool_out_dim = (conv_out_dim - maxpool_kernel) // maxpool_stride + 1
-        embedding_length = maxpool_out_dim
-
-        # LSTM Part
+        # LSTM Layers
+        embedding_length = (conv_out_dim - maxpool_kernel) // maxpool_stride + 1
         self.lstm = nn.LSTM(embedding_length, hidden_size,
                             num_layers, dropout=0.2)
 
-        # Regressor part
+        # Fully Connected Linear Layers for Regression
         self.fc_1 = nn.Linear(hidden_size, hidden_size // 2)
         self.fc_2 = nn.Linear(hidden_size // 2, num_classes)
 
@@ -88,54 +90,46 @@ class Cnn1dLSTM(LightningModule):
         :return: predictions: tensor([batch_size])
         """
 
-        # CNN feature extraction
+        # Feature Extraction
         features = torch.relu(self.conv_1(time_series))
         features = torch.relu(self.conv_2(features))
 
-        # Max-pooling layer
+        # Max-Pooling
         features = self.maxpool(features)
 
+        # Temporal Dependency Capture
         lstm_output, _ = self.lstm(features)
         lstm_output = torch.tanh(lstm_output)
         lstm_output = lstm_output[:, -1]
 
-        # Regressor
+        # Regression
         output = self.fc_1(lstm_output)
         output = torch.relu(output)
         output = self.fc_2(output)
         return output.flatten()
 
     def training_step(self, batch):
-        time_series, labels = batch
-        predictions = self.forward(time_series)
-        loss_fn = nn.MSELoss()
-        loss = loss_fn(predictions, labels)
-        loss = torch.sqrt(loss)
-        self.log("train_loss", loss)
+        time_series, target = batch
+        preds = self.forward(time_series)
+        loss = self.metric(preds, target)
+        self.log_dict({'RMSE': self.metric}, prog_bar=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
-        features, labels = batch
-        predictions = self.forward(features)
-        loss_fn = nn.MSELoss()
-        loss = loss_fn(predictions, labels)
-        loss = torch.sqrt(loss)
-        self.log("val_loss", loss)
+        features, target = batch
+        preds = self.forward(features)
+        loss = self.metric(preds, target)
+        self.log_dict({"Validation loss": loss})
 
     def test_step(self, batch, batch_idx, dataloader_idx=1):
-        features, labels = batch
-        predictions = self.forward(features)
-        loss_fn = nn.MSELoss()
-        loss = loss_fn(predictions, labels)
-        loss = torch.sqrt(loss)
-        self.log(f'test_loss: ', loss)
+        features, target = batch
+        preds = self.forward(features)
+        loss = self.metric(preds, target)
+        self.log_dict({'Test RMSE': loss}, prog_bar=True)
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
         return optimizer
-
-    def train_dataloader(self):
-        return super().train_dataloader()
     
-    def val_dataloader(self):
-        return super().val_dataloader()
+    def on_save_checkpoint(self, checkpoint: Dict[str, Any]) -> None:
+        return super().on_save_checkpoint(checkpoint)
