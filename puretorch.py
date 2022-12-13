@@ -1,44 +1,29 @@
 import torch
+import torchmetrics
 import rul_datasets
 import yaml
 from models.cnn1d_lstm import Cnn1dLSTM
+from models.network import Network
+from utils.read_params import read_params
+
 torch.manual_seed(42)
 
-cmapss_fd1 = rul_datasets.CmapssReader(fd=1)
-dm = rul_datasets.RulDataModule(cmapss_fd1, batch_size=32)
-dm.prepare_data()  # (1)!
-dm.setup()  # (2)!
+PARAMS_FILEPATH = 'params.yaml'
 
-if __name__ == '__main__':
-    with open('params.yaml', 'r') as file:
-        params = yaml.safe_load(file)
-
-    # dataset params
-    fd = params.get('dataset').get('filename')
-    batch_size = params.get('dataset').get('batch_size')
-
-    # model params
-    in_channels = params.get('model').get('in_channels')
-    out_channels = params.get('model').get('out_channels')
-    kernel_size = params.get('model').get('kernel_size')
-    maxpool_kernel = params.get('model').get('maxpool_kernel')
-    num_classes = params.get('model').get('num_classes')
-    hidden_size = params.get('model').get('hidden_size')
-    num_layers = params.get('model').get('num_layers')
-    maxpool_stride = params.get('model').get('maxpool_stride')
-    window_size = params.get('model').get('window_size')
-
-    # training params
-    lr = params.get('training').get('lr')
-    max_epochs = params.get('training').get('epochs')
-    patience = params.get('training').get('patience')
-    min_delta = params.get('training').get('min_delta')
-
+if __name__ == "__main__":
+    ####################################
+    # 0. Read Hyper-Parameters
+    fd, batch_size, window_size, in_channels, out_channels, kernel_size, maxpool_kernel, maxpool_stride, num_classes, hidden_size, num_layers, max_epochs, patience, min_delta, lr, dropout = read_params(PARAMS_FILEPATH)
+    
+    cmapss_fd1 = rul_datasets.CmapssReader(fd=1)
+    dm = rul_datasets.RulDataModule(cmapss_fd1, batch_size=32)
+    dm.prepare_data()  # (1)!
+    dm.setup()  # (2)!
+    
     ####################################
     # 1. Create Model
     ####################################
-    model = Cnn1dLSTM(
-        batch_size=batch_size,
+    model = Network(
         in_channels=in_channels,
         out_channels=out_channels,
         kernel_size=kernel_size,
@@ -49,22 +34,24 @@ if __name__ == '__main__':
         maxpool_stride=maxpool_stride,
         window_size=window_size,
         lr=lr,
+        dropout=dropout,
     )
 
     optim = torch.optim.Adam(model.parameters())
-
+    metric = torchmetrics.MeanSquaredError(squared=False)
     best_val_loss = torch.inf
 
-    for epoch in range(100):
+    for epoch in range(1000):
         print(f"Train epoch {epoch}")
         model.train()
         for features, targets in dm.train_dataloader():
             optim.zero_grad()
 
             predictions = model(features)
-            loss = torch.sqrt(torch.mean((targets - predictions)**2))  # (4)!
+            # loss = torch.sqrt(torch.mean((targets - predictions)**2))  # (4)!
+            loss = metric(predictions, targets)
             loss.backward()
-            print(f"Training loss: {loss}")
+            # print(f"Training loss: {loss:.3f}")
 
             optim.step()
 
@@ -74,24 +61,26 @@ if __name__ == '__main__':
         num_samples = 0
         for features, targets in dm.val_dataloader():
             predictions = model(features)
-            loss = torch.sum((targets - predictions)**2)
-            val_loss += loss.detach()
-            num_samples += predictions.shape[0]
-        val_loss = torch.sqrt(val_loss / num_samples)  # (5)!
+        #     loss = torch.sum((targets - predictions)**2)
+        #     val_loss += loss.detach()
+        #     num_samples += predictions.shape[0]
+        # val_loss = torch.sqrt(val_loss / num_samples)  # (5)!
+            val_loss = metric(predictions, targets)
 
         if best_val_loss < val_loss:
             break
         else:
             best_val_loss = val_loss
-            print(f"Validation loss: {best_val_loss}")
+            print(f"Validation loss: {best_val_loss:.4f}")
 
     test_loss = 0
     num_samples = 0
     for features, targets in dm.test_dataloader():
         predictions = model(features)
-        loss = torch.sqrt(torch.dist(predictions, targets))
-        test_loss += loss.detach()
-        num_samples += predictions.shape[0]
-    test_loss = torch.sqrt(test_loss / num_samples)  # (6)!
+    #     loss = torch.sqrt(torch.dist(predictions, targets))
+    #     test_loss += loss.detach()
+    #     num_samples += predictions.shape[0]
+    # test_loss = torch.sqrt(test_loss / num_samples)  # (6)!
+        test_loss = metric(predictions, targets)
 
-    print(f"Test loss: {test_loss}")
+    print(f"Test loss: {test_loss:.4f}")
