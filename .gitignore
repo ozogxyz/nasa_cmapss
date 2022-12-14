@@ -1,5 +1,5 @@
 __pycache__
-params.yaml
+**/*params.yaml
 *.ipynb
 tmp/
 .DS_Store
