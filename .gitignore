@@ -1,7 +1,9 @@
+__pycache__
+params.yaml
+*.ipynb
+tmp/
 .DS_Store
-
 Icon*
-
 tb_logs/
 Icon
 .vscode/
