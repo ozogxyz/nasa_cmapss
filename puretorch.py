@@ -13,7 +13,7 @@ PARAMS_FILEPATH = 'params.yaml'
 if __name__ == "__main__":
     ####################################
     # 0. Read Hyper-Parameters
-    fd, batch_size, window_size, in_channels, out_channels, kernel_size, maxpool_kernel, maxpool_stride, num_classes, hidden_size, num_layers, max_epochs, patience, min_delta, lr, dropout = read_params(PARAMS_FILEPATH)
+    fd, batch_size, window_size, in_channels, out_channels, kernel_size, stride, maxpool_kernel, maxpool_stride, num_classes, hidden_size, num_layers, max_epochs, patience, min_delta, lr, dropout = read_params(PARAMS_FILEPATH)
     
     cmapss_fd1 = rul_datasets.CmapssReader(fd=1)
     dm = rul_datasets.RulDataModule(cmapss_fd1, batch_size=32)
@@ -27,6 +27,7 @@ if __name__ == "__main__":
         in_channels=in_channels,
         out_channels=out_channels,
         kernel_size=kernel_size,
+        stride=stride,
         maxpool_kernel=maxpool_kernel,
         num_classes=num_classes,
         hidden_size=hidden_size,
@@ -51,7 +52,7 @@ if __name__ == "__main__":
             # loss = torch.sqrt(torch.mean((targets - predictions)**2))  # (4)!
             loss = metric(predictions, targets)
             loss.backward()
-            # print(f"Training loss: {loss:.3f}")
+            print(f"Training loss: {loss:.3f}")
 
             optim.step()
 
@@ -61,11 +62,11 @@ if __name__ == "__main__":
         num_samples = 0
         for features, targets in dm.val_dataloader():
             predictions = model(features)
-        #     loss = torch.sum((targets - predictions)**2)
-        #     val_loss += loss.detach()
-        #     num_samples += predictions.shape[0]
-        # val_loss = torch.sqrt(val_loss / num_samples)  # (5)!
-            val_loss = metric(predictions, targets)
+            loss = torch.sum((targets - predictions)**2)
+            val_loss += loss.detach()
+            num_samples += predictions.shape[0]
+        val_loss = torch.sqrt(val_loss / num_samples)  # (5)!
+            # val_loss = metric(predictions, targets)
 
         if best_val_loss < val_loss:
             break
@@ -77,10 +78,10 @@ if __name__ == "__main__":
     num_samples = 0
     for features, targets in dm.test_dataloader():
         predictions = model(features)
-    #     loss = torch.sqrt(torch.dist(predictions, targets))
-    #     test_loss += loss.detach()
-    #     num_samples += predictions.shape[0]
-    # test_loss = torch.sqrt(test_loss / num_samples)  # (6)!
-        test_loss = metric(predictions, targets)
+        loss = torch.sqrt(torch.dist(predictions, targets))
+        test_loss += loss.detach()
+        num_samples += predictions.shape[0]
+    test_loss = torch.sqrt(test_loss / num_samples)  # (6)!
+        # test_loss = metric(predictions, targets)
 
     print(f"Test loss: {test_loss:.4f}")
