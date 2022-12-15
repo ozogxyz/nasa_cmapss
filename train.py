@@ -1,3 +1,4 @@
+import os
 import warnings
 
 import pytorch_lightning as pl
@@ -73,7 +74,7 @@ if __name__ == "__main__":
         accelerator='auto',
         callbacks=[early_stop_callback, learning_rate_monitor ,model_summary,
             print_callback, progress_bar, timer],
-        log_every_n_steps=15,
+        log_every_n_steps=5,
         max_epochs=max_epochs,
         logger=logger,
         default_root_dir='tmp/checkpoints/'
