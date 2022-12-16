@@ -108,7 +108,7 @@ class Network(LightningModule):
 
         # Temporal Dependency Capture
         lstm_output, _ = self.temporal_extractor(features)
-        # lstm_output = lstm_output[:, -1]  # ? Neden hatırlamıyorum
+        lstm_output = lstm_output[:, -1]  # ? Neden hatırlamıyorum
 
         # Regression
         output = self.regressor(lstm_output)
