@@ -32,9 +32,6 @@ class LSTM(nn.Module):
         :param num_layers: Determines how many LSTM layers will be stacked.
         """
         super().__init__()
-        self.input_length = input_length
-        self.hidden_size = hidden_size
-        self.num_layers = num_layers
 
         # LSTM Layers
         self.lstm = nn.LSTM(input_length, hidden_size, num_layers, dropout=dropout)

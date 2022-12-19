@@ -1,10 +1,9 @@
-import os
 import warnings
 
+import numpy as np
 import pytorch_lightning as pl
 import rul_datasets
 import torch.nn as nn
-import yaml
 from pytorch_lightning.callbacks import *
 from pytorch_lightning.loggers import TensorBoardLogger
 
@@ -89,4 +88,3 @@ if __name__ == "__main__":
     #####################################
     trainer.fit(model, dm)
     trainer.test(model, dm)
-    
