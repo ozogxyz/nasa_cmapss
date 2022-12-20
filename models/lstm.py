@@ -35,9 +35,11 @@ class LSTM(nn.Module):
 
         # LSTM Layers
         self.lstm = nn.LSTM(input_length, hidden_size, num_layers, dropout=dropout)
+        self.tanh = nn.Tanh()
 
     def forward(self, input_sequence):
         # Temporal Dependency Capture
         lstm_output, hidden_state = self.lstm(input_sequence)
+        lstm_output = self.tanh(lstm_output)
         return lstm_output, hidden_state
 
