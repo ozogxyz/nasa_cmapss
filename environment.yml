@@ -1,0 +1,10 @@
+name: ml
+dependencies:
+  - numpy
+  - pandas
+  - pip
+  - pyyaml
+  - pip:
+    - pytorch_lightning
+    - rich
+    - rul_datasets
