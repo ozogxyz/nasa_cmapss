@@ -8,4 +8,4 @@ RUN pip3 install -r requirements.txt
 
 COPY . .
 
-CMD [ "python3", "main.py", "-b 300", "-e 1000" ]
+CMD [ "python3", "train.py" ]
