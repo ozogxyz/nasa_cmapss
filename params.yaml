@@ -16,5 +16,5 @@ model:
 training:
   epochs : 1000
   patience: 10
-  min_delta: 1
+  min_delta: 0.1
   lr: 0.015

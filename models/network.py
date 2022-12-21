@@ -59,7 +59,7 @@ class Network(LightningModule):
         self.feature_extractor = nn.Sequential()
         self.feature_extractor.add_module('Conv1D_1', Conv1D(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size, stride=stride))
         self.feature_extractor.add_module('ELU', nn.ELU())
-        self.feature_extractor.add_module('Conv1D_2', Conv1D(in_channels=out_channels, out_channels=out_channels+6, kernel_size=kernel_size-2, stride=stride))
+        self.feature_extractor.add_module('Conv1D_2', Conv1D(in_channels=out_channels, out_channels=out_channels*2, kernel_size=kernel_size-2, stride=stride))
         self.feature_extractor.add_module('ELU', nn.ELU())
 
         # Max-Pooling Layer
@@ -108,7 +108,7 @@ class Network(LightningModule):
 
         # Temporal Dependency Capture
         lstm_output, _ = self.temporal_extractor(features)
-        lstm_output = lstm_output[:, -1]  # ? Neden hatırlamıyorum
+        lstm_output = lstm_output[:, -1]
 
         # Regression
         output = self.regressor(lstm_output)
@@ -131,12 +131,10 @@ class Network(LightningModule):
         features, target = batch
         preds = self.forward(features)
         loss = self.metric(preds, target)
+        print(preds[-10:])
+        print(target[-10:])
         self.log('RMSE', value=loss, enable_graph=True, add_dataloader_idx=True, metric_attribute=self.metric)
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
         return optimizer
-
-    def on_test_end(self) -> None:
-        print(self.hparams)
-        return super().on_test_end()
