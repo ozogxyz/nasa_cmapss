@@ -1,17 +1,16 @@
 import hydra
-import warnings
-import torch
 import pytorch_lightning as pl
 import rul_datasets
-from pytorch_lightning.callbacks import *
-from pytorch_lightning.loggers import TensorBoardLogger
+import torch
 from omegaconf import DictConfig
+from pytorch_lightning.callbacks import *
+
 from src.models.regressor import ConvLSTMNet
 from src.utils.callbacks import PrintCallback
 
-
 @hydra.main(version_base=None, config_path='config/', config_name='config')
 def main(cfg: DictConfig) -> None:
+    print(cfg)
     pl.seed_everything(cfg.seed)
 
     # Load dataset
