@@ -3,6 +3,7 @@ __pycache__
 params.yaml
 *.ipynb
 tmp/
+logs/
 .DS_Store
 Icon*
 tb_logs/
