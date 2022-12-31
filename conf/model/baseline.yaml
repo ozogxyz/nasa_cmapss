@@ -1,9 +1,10 @@
 defaults:
     - blocks:
-        - conv1
-        - conv2
-        - lstm
+          - conv1
+          - conv2
+          - lstm
+          - regressor
     - /trainer:
-        - basic
+          - basic
     - /hparams:
-        - basic
+          - basic

@@ -1,12 +1,21 @@
 conv1:
-  in_channels: 14
-  out_channels: 32
-  kernel_size: 3
-  stride: 1
-  padding: 1
-  bias: False
-  groups: 1
-  activation: relu
-  batch_norm: False
-  dropout: 0.0
-  dilation: 0
+  _target_: src.rul_models.blocks.Conv1DBlock
+  _args_:
+    - _target_: torch.nn.Conv1d
+      in_channels: 14
+      out_channels: 32
+      kernel_size: 3
+      stride: 1
+      padding: 1
+      dilation: 0
+      groups: 1
+      bias: False
+      padding_mode: zeros
+
+    - _target_: torch.nn.BatchNorm1d
+      num_features: ${..[0].out_channels}
+
+    - _target_: torch.nn.ReLU
+
+    - _target_: torch.nn.Dropout
+      p: 0.25

@@ -14,11 +14,10 @@ class RulModel(pl.LightningModule):
     def __init__(self, args: Any):
         super(RulModel, self).__init__()
 
-        self.conv1 = Conv1DBlock(args.blocks.conv1)
-        self.conv2 = Conv1DBlock(args.blocks.conv2)
-        self.lstm = LSTMBlock(args.blocks.lstm)
-
-        self.fc = nn.Linear(args.blocks.lstm.output_length, 1)
+        self.conv1 = args.blocks.conv1
+        self.conv2 = args.blocks.conv2
+        self.lstm = args.blocks.lstm
+        self.fc = args.blocks.regressor
         self.loss = nn.MSELoss()
         self.optimizer = torch.optim.Adam(self.parameters(), args.hparams.lr)
 

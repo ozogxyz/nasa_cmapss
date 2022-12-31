@@ -1,14 +1,16 @@
 import hydra
 import pytorch_lightning as pl
 import rul_datasets
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 from pytorch_lightning.callbacks import *
-
+from hydra.utils import instantiate
 from src.rul_models import rul_models
 
 
 @hydra.main(version_base=None, config_path='conf', config_name='config')
 def main(cfg: DictConfig) -> None:
+
+    cfg = instantiate(cfg)
 
     # Load dataset
     data = rul_datasets.CmapssReader(cfg.data.fd)

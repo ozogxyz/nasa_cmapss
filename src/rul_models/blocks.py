@@ -8,32 +8,17 @@ class Conv1DBlock(nn.Module):
     1D convolutional block
     """
 
-    def __init__(self, args: Any):
+    def __init__(self, *args: Any, **kwargs: Any):
         super(Conv1DBlock, self).__init__()
         """
-        :param in_channels: Input channels for Conv1d, number of features (14 in FD001).
-        :param out_channels: Output channels for 1st Conv1d, total conv output will be 2 * out_channels.
-        :param kernel_size: Kernel size for 1st Conv1d, will be kernel_size - 2 in the next layer.
+        Initialize Conv1DBlock
+        :param args: arg.blocks.conv?.yaml (see hydra configs).
         """
-        self.args = args
-        self.conv1d = nn.Conv1d(
-            in_channels=args.in_channels,
-            out_channels=args.out_channels,
-            kernel_size=args.kernel_size,
-            stride=args.stride,
-            padding=args.padding,
-            dilation=args.dilation,
-        )
-
-        if args.batch_norm:
-            self.bn1d = nn.BatchNorm1d(args.out_channels)
-
-        if args.dropout is not None:
-            self.dropout = nn.Dropout(args.dropout)
-        else:
-            self.dropout = None
-
-        self.relu = nn.ReLU(inplace=True)
+        # print(args)
+        self.conv1d = args[0]
+        self.bn1d = args[1]
+        self.activation = args[2]
+        self.dropout = args[3]
 
     def forward(self, x):
         """
@@ -41,12 +26,13 @@ class Conv1DBlock(nn.Module):
         :return: Output tensor
         """
         x = self.conv1d(x)
-        if self.args.batch_norm:
-            x = self.bn1d(x)
+        x = self.bn1d(x)
+        if self.activation is not None:
+            x = self.activation(x)
         if self.dropout is not None:
             x = self.dropout(x)
-        x = self.relu(x)
-        return
+            return x
+        return x
 
 
 class LSTMBlock(nn.Module):
@@ -54,37 +40,52 @@ class LSTMBlock(nn.Module):
     Long short-term memory (LSTM) block
     """
 
-    def __init__(self, args: Any):
+    def __init__(self, *args: Any, **kwargs):
         super(LSTMBlock, self).__init__()
         """
-        :param input_length: Input batch size.
-        :param num_classes: Size of the desired output 
-        :param hidden_size: Size of the hidden state in LSTM layers.
-        :param num_layers: Determines how many LSTM layers will be stacked.
+        Initialize LSTMBlock
+        :param args: arg.blocks.lstm?.yaml (see hydra configs).
         """
-        self.num_directions = 2 if args.num_layers > 1 else 1
-        self.lstm = nn.LSTM(input_size=args.input_size
-                            + args.hidden_size * args.num_directions,
-                            hidden_size=args.hidden_size,
-                            num_layers=args.num_layers,
-                            batch_first=args.batch_first,
-                            bidirectional=args.bidirectional)
+        self.lstm = args[0]
+        self.activation = args[1]
+        self.dropout = args[2]
 
-        if args.dropout is not None:
-            self.dropout = nn.Dropout(args.dropout)
-        else:
-            self.dropout = None
-
-        self.tanh = nn.Tanh()
-        
-    def forward(self, input_data):
+    def forward(self, x):
         """
-        :param input_data: Input data.
-        :return: The output of LSTM.
+        :param x: Input tensor
+        :return: Output tensor
         """
-        output, _ = self.lstm(input_data)
+        x = self.lstm(x)
+        if self.activation is not None:
+            x = self.activation(x)
         if self.dropout is not None:
-            output = self.dropout(output)
-        output = self.tanh(output)
-        return output
+            x = self.dropout(x)
+            return x
+        return x
 
+class Regressor(nn.Module):
+    """
+    Regressor
+    """
+    def __init__(self, *args: Any, **kwargs: Any):
+        super(Regressor, self).__init__()
+        """
+        Initialize Regressor
+        :param args: arg.blocks.regressor?.yaml (see hydra configs).
+        """
+        self.fc1 = args[0]
+        self.activation = args[1]
+        self.dropout = args[2]
+        self.fc2 = args[3]
+
+    def forward(self, x):
+        """
+        :param x: Input tensor
+        :return: Output tensor
+        """
+        x = self.fc1(x)
+        if self.activation is not None:
+            x = self.activation(x)
+        if self.dropout is not None:
+            x = self.dropout(x)
+        return x
