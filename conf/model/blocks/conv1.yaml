@@ -1,0 +1,12 @@
+conv1:
+  in_channels: 14
+  out_channels: 32
+  kernel_size: 3
+  stride: 1
+  padding: 1
+  bias: False
+  groups: 1
+  activation: relu
+  batch_norm: False
+  dropout: 0.0
+  dilation: 0

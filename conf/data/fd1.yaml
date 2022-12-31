@@ -1,0 +1,4 @@
+fd: 1
+batch_size: 32
+num_workers: 10
+window_size: 30

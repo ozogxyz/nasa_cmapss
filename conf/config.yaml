@@ -1,0 +1,8 @@
+hydra:
+  run:
+    dir: ./logs/${hydra.job.name}/${now:%Y-%m-%d_%H-%M-%S}
+defaults:
+  - model/baseline
+  - data/fd1
+  - trainer/basic
+  - _self_

@@ -1,0 +1,9 @@
+defaults:
+    - blocks:
+        - conv1
+        - conv2
+        - lstm
+    - /trainer:
+        - basic
+    - /hparams:
+        - basic

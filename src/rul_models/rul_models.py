@@ -6,24 +6,21 @@ import torch.nn as nn
 from .blocks import Conv1DBlock, LSTMBlock
 
 
-class ConvLSTMNet(pl.LightningModule):
+class RulModel(pl.LightningModule):
     """
     A hybrid convolutional and recurrent neural network for remining useful life (RUL) regression.
     """
 
     def __init__(self, args: Any):
-        super(ConvLSTMNet, self).__init__()
-        self.conv1 = Conv1DBlock(args['conv_block_1'])
+        super(RulModel, self).__init__()
 
-        self.conv2 = Conv1DBlock(args['conv_block_2'])
+        self.conv1 = Conv1DBlock(args.blocks.conv1)
+        self.conv2 = Conv1DBlock(args.blocks.conv2)
+        self.lstm = LSTMBlock(args.blocks.lstm)
 
-        self.lstm = LSTMBlock(args['lstm'])
-
-        self.fc = nn.Linear(64, 1)
+        self.fc = nn.Linear(args.blocks.lstm.output_length, 1)
         self.loss = nn.MSELoss()
-
-        self.optimizer = torch.optim.Adam(
-            self.parameters(), lr=args.lr)
+        self.optimizer = torch.optim.Adam(self.parameters(), args.hparams.lr)
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
         """
@@ -86,4 +83,5 @@ class ConvLSTMNet(pl.LightningModule):
 
         :return:
         """
+        
         return self.optimizer

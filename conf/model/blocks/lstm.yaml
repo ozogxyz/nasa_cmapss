@@ -1,0 +1,11 @@
+lstm:
+  input_size: 64
+  output_length: 64
+  hidden_size: 50
+  dropout: 0.25
+  batch_first: true
+  bidirectional: false
+  activation: ReLU
+  num_classes: 1
+  num_directions: 1
+  num_layers: 1
