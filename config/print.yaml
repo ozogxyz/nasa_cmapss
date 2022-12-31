@@ -1,0 +1,3 @@
+log_dir: ./log/print.log
+print_interval: 60
+print_interval_secs: 60

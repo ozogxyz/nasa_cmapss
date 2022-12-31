@@ -1,9 +1,9 @@
-name: ml
+name: thesis
 dependencies:
   - numpy
   - pandas
-  - pip
   - pyyaml
+  - pip
   - pip:
     - pytorch_lightning
     - rich
