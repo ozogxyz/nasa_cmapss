@@ -1,11 +1,61 @@
-defaults:
-    - blocks:
-          - conv1
-          - conv2
-          - maxpool
-          - lstm
-          - regressor
-    - /trainer:
-          - basic
-    - /hparams:
-          - basic
+baseline:
+  _target_: torch.nn.Sequential
+  _args_:
+    - _target_: torch.nn.Conv1d
+      in_channels: 14
+      out_channels: 32
+      kernel_size: 3
+      stride: 1
+      padding: 1
+      dilation: 0
+      groups: 1
+      bias: False
+      padding_mode: zeros
+    - _target_: torch.nn.BatchNorm1d
+      num_features: ${..[0].out_channels}
+    - _target_: torch.nn.ReLU
+    - _target_: torch.nn.Dropout
+      p: 0.25
+    - _target_: torch.nn.Conv1d
+      in_channels: 32
+      out_channels: 64
+      kernel_size: 3
+      stride: 1
+      padding: 1
+      dilation: 0
+      groups: 1
+      bias: False
+      padding_mode: zeros
+    - _target_: torch.nn.BatchNorm1d
+      num_features: ${..[0].out_channels}
+    - _target_: torch.nn.ReLU
+    - _target_: torch.nn.Dropout
+      p: 0.25
+    - _target_: torch.nn.LSTM
+      input_size: 17
+      num_layers: 2
+      dropout: 0.1
+      hidden_size: 50
+      batch_first: true
+      bidirectional: false
+    - _target_: torch.nn.Tanh
+    - _target_: torch.nn.Dropout
+      p: 0.25
+    - _target_: torch.nn.Linear
+      in_features: 50
+      out_features: 25
+    - _target_: torch.nn.Sigmoid
+    - _target_: torch.nn.Dropout
+      p: 0.25
+    - _target_: torch.nn.Linear
+      in_features: 25
+      out_features: 12
+    - _target_: torch.nn.Sigmoid
+    - _target_: torch.nn.Dropout
+      p: 0.25
+    - _target_: torch.nn.Linear
+      in_features: 12
+      out_features: 1
+
+
+   

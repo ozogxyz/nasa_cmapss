@@ -1,0 +1,20 @@
+dataset:
+  fd: 1
+  time_series:
+    train_size: 13818
+    val_size: 3913
+    test_size: 100
+  batch_size: 32
+  channel_size: 14
+  window_size: 30
+  classes: 1
+model:
+  feature_extractor:
+    _target_: src.rul_models.rul_models.FeatureExtractor
+  regressor:
+    _target_: src.rul_models.blocks.Regressor
+trainer:
+  accelerator: mps
+  max_epochs: 1
+  gradient_clip_val: 0.2
+  gradient_clip_algorithm: value

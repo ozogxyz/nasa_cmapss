@@ -8,19 +8,15 @@ from pytorch_lightning.callbacks import *
 from src.rul_models import rul_models
 
 
-@hydra.main(version_base=None, config_path='conf', config_name='config')
+@hydra.main(version_base=None, config_path='conf', config_name='test_conf')
 def main(cfg: DictConfig) -> None:
 
     # Instantiate config
-    cfg = instantiate(cfg)
-
-
+    model = instantiate(cfg.model)
+    print(model)
     # Load dataset
-    data = rul_datasets.CmapssReader(cfg.data.fd)
-    dm = rul_datasets.RulDataModule(data, batch_size=cfg.data.batch_size)
-
-    # Load model
-    model = rul_models.RulModel(cfg.model)
+    data = rul_datasets.CmapssReader(cfg.dataset.fd)
+    dm = rul_datasets.RulDataModule(data, batch_size=cfg.dataset.batch_size)
 
     # Train
     trainer = pl.Trainer(
@@ -32,7 +28,7 @@ def main(cfg: DictConfig) -> None:
     )
 
     trainer.fit(model, dm)
-    # trainer.test(model, dm)
+    # # trainer.test(model, dm)
 
 
 if __name__ == '__main__':

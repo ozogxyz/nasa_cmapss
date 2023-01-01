@@ -1,7 +1,11 @@
-seed: 42
-model_path: ./models/paper.ckpt
 defaults:
-  - blocks:
-      - lstm_1_layer
-      - conv1d_32
-      - conv1d_64
+    - blocks:
+          - conv1
+          - conv2
+          - maxpool
+          - lstm
+          - regressor
+    - /trainer:
+          - basic
+    - /hparams:
+          - basic
