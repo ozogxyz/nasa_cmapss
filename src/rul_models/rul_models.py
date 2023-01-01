@@ -2,8 +2,7 @@ from typing import Any
 
 import pytorch_lightning as pl
 import torch
-import torch.nn as nn
-from .blocks import Conv1DBlock, LSTMBlock
+from torchmetrics import MeanSquaredError
 
 
 class RulModel(pl.LightningModule):
@@ -16,45 +15,52 @@ class RulModel(pl.LightningModule):
 
         self.conv1 = args.blocks.conv1
         self.conv2 = args.blocks.conv2
+        self.maxpool = args.blocks.maxpool
         self.lstm = args.blocks.lstm
         self.fc = args.blocks.regressor
-        self.loss = nn.MSELoss()
+
+        self.loss = MeanSquaredError(squared=False)
         self.optimizer = torch.optim.Adam(self.parameters(), args.hparams.lr)
 
-    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
-        Forward pass of the model.
+        Forward pass through the model.
 
-        :param inputs: Input tensor.
-        :return: Output tensor.
+        :param x: input tensor
+        :return: output tensor
         """
-        x = self.conv1(inputs)
+        print(x.shape)
+        x = self.conv1(x)
         x = self.conv2(x)
+        x = self.maxpool(x)
         x = self.lstm(x)
+        x = torch.flatten(x[-1], start_dim=1)
         x = self.fc(x)
-        return x
+        return x.flatten()
 
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch: Any, batch_idx: int) -> Any:
         """
-        One training step.
+        Forward pass through the model.
 
-        :param batch:
-        :param batch_idx:
-        :return:
+        :param batch: input batch
+        :param batch_idx: batch index
+        :return: output batch
         """
         x, y = batch
         y_hat = self(x)
+        print(y_hat.size(), y.size())
         loss = self.loss(y_hat, y)
         self.log("train_loss", loss)
         return loss
 
-    def validation_step(self, batch, batch_idx):
-        """
-        One evaluation step.
 
-        :param batch:
-        :param batch_idx:
-        :return:
+    def validation_step(self, batch: Any, batch_idx: int) -> Any:
+        """
+        Forward pass through the model.
+
+        :param batch: input batch
+        :param batch_idx: batch index
+        :return: output batch
         """
         x, y = batch
         y_hat = self(x)
@@ -62,25 +68,23 @@ class RulModel(pl.LightningModule):
         self.log("val_loss", loss)
         return loss
 
-    def test_step(self, batch, batch_idx):
+    def test_step(self, batch: Any, batch_idx: int) -> Any:
         """
-        One evaluation step.
+        Forward pass through the model.
 
-        :param batch:
-        :param batch_idx:
-        :return:
+        :param batch: input batch
+        :param batch_idx: batch index
+        :return: output batch
         """
         x, y = batch
         y_hat = self(x)
         loss = self.loss(y_hat, y)
-        self.log("test_loss", loss)
         return loss
 
-    def configure_optimizers(self):
+    def configure_optimizers(self) -> Any:
         """
-        Configure the optimizer and learning rate scheduler.
+        Configure the optimizer.
 
-        :return:
+        :return: optimizer
         """
-        
         return self.optimizer

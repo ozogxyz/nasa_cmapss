@@ -1,0 +1,7 @@
+maxpool:
+  _target_: src.rul_models.blocks.MaxPool
+  _args_:
+    - _target_: torch.nn.MaxPool2d
+      kernel_size: 2
+      stride: 2
+   

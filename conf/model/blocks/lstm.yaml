@@ -2,7 +2,7 @@ lstm:
   _target_: src.rul_models.blocks.LSTMBlock
   _args_:
     - _target_: torch.nn.LSTM
-      input_size: 34
+      input_size: 17
       num_layers: 2
       dropout: 0.1
       hidden_size: 50

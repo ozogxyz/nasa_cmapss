@@ -2,6 +2,7 @@ defaults:
     - blocks:
           - conv1
           - conv2
+          - maxpool
           - lstm
           - regressor
     - /trainer:

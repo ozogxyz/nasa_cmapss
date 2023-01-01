@@ -14,7 +14,6 @@ class Conv1DBlock(nn.Module):
         Initialize Conv1DBlock
         :param args: arg.blocks.conv?.yaml (see hydra configs).
         """
-        # print(args)
         self.conv1d = args[0]
         self.bn1d = args[1]
         self.activation = args[2]
@@ -55,7 +54,7 @@ class LSTMBlock(nn.Module):
         :param x: Input tensor
         :return: Output tensor
         """
-        x = self.lstm(x)
+        x, _ = self.lstm(x)
         if self.activation is not None:
             x = self.activation(x)
         if self.dropout is not None:
@@ -63,10 +62,12 @@ class LSTMBlock(nn.Module):
             return x
         return x
 
+
 class Regressor(nn.Module):
     """
     Regressor
     """
+
     def __init__(self, *args: Any, **kwargs: Any):
         super(Regressor, self).__init__()
         """
@@ -74,9 +75,13 @@ class Regressor(nn.Module):
         :param args: arg.blocks.regressor?.yaml (see hydra configs).
         """
         self.fc1 = args[0]
-        self.activation = args[1]
-        self.dropout = args[2]
+        self.activation1 = args[1]
+        self.dropout1 = args[2]
         self.fc2 = args[3]
+        self.activation2 = args[4]
+        self.dropout2 = args[5]
+        self.fc3 = args[6]
+
 
     def forward(self, x):
         """
@@ -84,8 +89,30 @@ class Regressor(nn.Module):
         :return: Output tensor
         """
         x = self.fc1(x)
-        if self.activation is not None:
-            x = self.activation(x)
-        if self.dropout is not None:
-            x = self.dropout(x)
+        x = self.activation1(x)
+        x = self.dropout1(x)
+        x = self.fc2(x)
+        x = self.activation2(x)
+        x = self.dropout2(x)
+        x = self.fc3(x)
+        return x
+
+class MaxPool(nn.Module):
+    """
+    Maxpool
+    """
+    def __init__(self, *args: Any, **kwargs: Any):
+        super(MaxPool, self).__init__()
+        """
+        Initialize Maxpool
+        :param args: arg.blocks.maxpool?.yaml (see hydra configs).
+        """
+        self.pool = args[0]
+
+    def forward(self, x):
+        """
+        :param x: Input tensor
+        :return: Output tensor
+        """
+        x = self.pool(x)
         return x

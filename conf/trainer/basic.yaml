@@ -1,2 +1,4 @@
 accelerator: mps
 max_epochs: 1
+gradient_clip_val: 0.2
+gradient_clip_algorithm: value
