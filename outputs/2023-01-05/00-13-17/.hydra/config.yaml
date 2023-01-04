@@ -1,0 +1,20 @@
+dataset:
+  filename: 1
+  batch_size: 512
+model:
+  window_size: 30
+  in_channels: 14
+  out_channels: 14
+  kernel_size: 5
+  stride: 2
+  num_classes: 1
+  hidden_size: 50
+  num_layers: 1
+  maxpool_kernel: 2
+  maxpool_stride: 1
+  dropout: 0.2
+  lr: 0.015
+training:
+  max_epochs: 1000
+  patience: 10
+  min_delta: 0.1

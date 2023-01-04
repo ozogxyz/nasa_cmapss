@@ -1,21 +1,21 @@
 from typing import Optional
-import torch
+from torch import Tensor
 import torch.nn as nn
 
-PYTORCH_ENABLE_MPS_FALLBACK = 1
+# PYTORCH_ENABLE_MPS_FALLBACK = 1
 
-# Check first that CUDA then MPS is available, if not fallback to CPU
-if torch.cuda.is_available():
-    device = "cuda:0"
-elif not torch.backends.mps.is_available():
-    if not torch.backends.mps.is_built():
-        print("MPS not available because the current PyTorch install was not "
-              "built with MPS enabled.")
-    else:
-        print("MPS not available because the current MacOS version is not 12.3+ "
-              "and/or you do not have an MPS-enabled device on this machine.")
-else:
-    device = torch.device("mps")
+# # Check first that CUDA then MPS is available, if not fallback to CPU
+# if torch.cuda.is_available():
+#     device = "cuda:0"
+# elif not torch.backends.mps.is_available():
+#     if not torch.backends.mps.is_built():
+#         print("MPS not available because the current PyTorch install was not "
+#               "built with MPS enabled.")
+#     else:
+#         print("MPS not available because the current MacOS version is not 12.3+ "
+#               "and/or you do not have an MPS-enabled device on this machine.")
+# else:
+#     device = torch.device("mps")
 
 
 class Conv1D(nn.Module):
@@ -34,9 +34,10 @@ class Conv1D(nn.Module):
         super().__init__()
 
         # Convolutinal Layers
-        self.conv_1 = nn.Conv1d(in_channels, out_channels, kernel_size, stride=stride)
+        self.conv_1 = nn.Conv1d(in_channels, out_channels,
+                                kernel_size, stride=stride)
 
-    def forward(self, time_series):
+    def forward(self, time_series:Tensor):
         """
         rul-datasets library gives batches of:
         n_batch x n_features(14) x window_size(30)

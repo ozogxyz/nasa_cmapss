@@ -1,7 +1,7 @@
-from pprint import pprint
 from typing import Optional
 
 import torch
+from torch import Tensor
 import torch.nn as nn
 import torchmetrics
 from pytorch_lightning import LightningModule
@@ -10,18 +10,18 @@ from .cnn import Conv1D
 from .linear import Linear
 from .lstm import LSTM
 
-PYTORCH_ENABLE_MPS_FALLBACK = 1
+# PYTORCH_ENABLE_MPS_FALLBACK = 1
 
-# Check first that CUDA then MPS is available, if not fallback to CPU
-if torch.cuda.is_available():
-    device = "cuda:0"
-elif not torch.backends.mps.is_available():
-    if not torch.backends.mps.is_built():
-        print("MPS not available because the current PyTorch install was not built with MPS enabled.")
-    else:
-        print("MPS not available because the current MacOS version is not 12.3+ and/or you do not have an MPS-enabled   device on this machine.")
-else:
-    device = torch.device("mps")
+# # Check first that CUDA then MPS is available, if not fallback to CPU
+# if torch.cuda.is_available():
+#     device = "cuda:0"
+# elif not torch.backends.mps.is_available():
+#     if not torch.backends.mps.is_built():
+#         print("MPS not available because the current PyTorch install was not built with MPS enabled.")
+#     else:
+#         print("MPS not available because the current MacOS version is not 12.3+ and/or you do not have an MPS-enabled   device on this machine.")
+# else:
+#     device = torch.device("mps")
 
 
 class Network(LightningModule):
@@ -57,31 +57,38 @@ class Network(LightningModule):
 
         # Convolutional Blocks
         self.feature_extractor = nn.Sequential()
-        self.feature_extractor.add_module('Conv1D_1', Conv1D(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size, stride=stride))
+        self.feature_extractor.add_module('Conv1D_1', Conv1D(
+            in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size, stride=stride))
         self.feature_extractor.add_module('ELU', nn.ELU())
-        self.feature_extractor.add_module('Conv1D_2', Conv1D(in_channels=out_channels, out_channels=out_channels*2, kernel_size=kernel_size-2, stride=stride))
+        self.feature_extractor.add_module('Conv1D_2', Conv1D(
+            in_channels=out_channels, out_channels=out_channels*2, kernel_size=kernel_size-2, stride=stride))
         self.feature_extractor.add_module('ELU', nn.ELU())
 
         # Max-Pooling Layer
         self.maxpool = nn.Sequential()
-        self.maxpool.add_module('MaxPool1D', nn.MaxPool1d(kernel_size=maxpool_kernel, stride=maxpool_stride))
+        self.maxpool.add_module('MaxPool1D', nn.MaxPool1d(
+            kernel_size=maxpool_kernel, stride=maxpool_stride))
 
         # LSTM Blocks
-        conv1_out_dim = (window_size - kernel_size) // stride + 1
+        conv1_out_dim: int = (window_size - kernel_size) // stride + 1
         conv2_out_dim = (conv1_out_dim - kernel_size+2) // stride + 1
-        maxpool_out_dim = (conv2_out_dim - maxpool_kernel) // maxpool_stride + 1
+        maxpool_out_dim: int = (
+            conv2_out_dim - maxpool_kernel) // maxpool_stride + 1
         embedding_length = maxpool_out_dim
 
         self.temporal_extractor = nn.Sequential()
-        self.temporal_extractor.add_module('LSTM', LSTM(embedding_length, hidden_size, num_layers, dropout))
+        self.temporal_extractor.add_module('LSTM', LSTM(
+            embedding_length, hidden_size, num_layers, dropout))
 
         # Fully Connected Linear Layers for Regression
         self.regressor = nn.Sequential()
         self.regressor.add_module('FC_1', Linear(hidden_size, hidden_size//2))
         self.regressor.add_module('ReLU', nn.ReLU())
-        self.regressor.add_module('FC_2', Linear(hidden_size//2, hidden_size//4))
+        self.regressor.add_module(
+            'FC_2', Linear(hidden_size//2, hidden_size//4))
         self.regressor.add_module('ReLU', nn.ReLU())
-        self.regressor.add_module('FC_3', Linear(hidden_size//4, hidden_size//8))
+        self.regressor.add_module(
+            'FC_3', Linear(hidden_size//4, hidden_size//8))
         self.regressor.add_module('ReLU', nn.ReLU())
         self.regressor.add_module('FC_4', Linear(hidden_size//8, num_classes))
 
@@ -91,7 +98,7 @@ class Network(LightningModule):
         # Lightning Stuff
         self.save_hyperparameters()
 
-    def forward(self, time_series):
+    def forward(self, time_series: Tensor):
         """
         rul-datasets library gives batches of:
         n_batch x n_features(14) x window_size(30)
@@ -131,9 +138,9 @@ class Network(LightningModule):
         features, target = batch
         preds = self.forward(features)
         loss = self.metric(preds, target)
-        print(preds[-10:])
-        print(target[-10:])
-        self.log('RMSE', value=loss, enable_graph=True, add_dataloader_idx=True, metric_attribute=self.metric)
+
+        self.log('RMSE', value=loss, enable_graph=True,
+                 add_dataloader_idx=True, metric_attribute=self.metric)
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
